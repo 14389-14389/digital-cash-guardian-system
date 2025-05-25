@@ -145,6 +145,7 @@ export type Database = {
           full_name: string | null
           id: string
           phone: string | null
+          role: Database["public"]["Enums"]["user_role"] | null
           updated_at: string
         }
         Insert: {
@@ -152,6 +153,7 @@ export type Database = {
           full_name?: string | null
           id: string
           phone?: string | null
+          role?: Database["public"]["Enums"]["user_role"] | null
           updated_at?: string
         }
         Update: {
@@ -159,6 +161,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           phone?: string | null
+          role?: Database["public"]["Enums"]["user_role"] | null
           updated_at?: string
         }
         Relationships: []
@@ -239,6 +242,7 @@ export type Database = {
     Enums: {
       investment_status: "active" | "completed" | "suspended"
       package_type: "starter" | "growth" | "premium" | "elite"
+      user_role: "admin" | "client"
       withdrawal_status: "pending" | "approved" | "rejected" | "completed"
     }
     CompositeTypes: {
@@ -357,6 +361,7 @@ export const Constants = {
     Enums: {
       investment_status: ["active", "completed", "suspended"],
       package_type: ["starter", "growth", "premium", "elite"],
+      user_role: ["admin", "client"],
       withdrawal_status: ["pending", "approved", "rejected", "completed"],
     },
   },
