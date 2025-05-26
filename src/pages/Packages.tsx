@@ -39,7 +39,14 @@ const Packages = () => {
         .order('price', { ascending: true });
 
       if (error) throw error;
-      setPackages(data || []);
+      
+      // Transform the data to ensure features is a string array
+      const transformedData = data?.map(pkg => ({
+        ...pkg,
+        features: Array.isArray(pkg.features) ? pkg.features : JSON.parse(pkg.features as string)
+      })) || [];
+      
+      setPackages(transformedData);
     } catch (error) {
       console.error('Error fetching packages:', error);
     } finally {
