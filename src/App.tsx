@@ -8,6 +8,10 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Packages from "./pages/Packages";
+import Investments from "./pages/Investments";
+import Withdrawals from "./pages/Withdrawals";
+import Referrals from "./pages/Referrals";
+import Settings from "./pages/Settings";
 import DashboardLayout from "./components/Dashboard/DashboardLayout";
 import NotFound from "./pages/NotFound";
 
@@ -73,6 +77,10 @@ const App = () => (
           }>
             <Route index element={<Dashboard />} />
             <Route path="packages" element={<Packages />} />
+            <Route path="investments" element={<Investments />} />
+            <Route path="withdrawals" element={<Withdrawals />} />
+            <Route path="referrals" element={<Referrals />} />
+            <Route path="settings" element={<Settings />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
