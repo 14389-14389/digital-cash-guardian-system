@@ -139,6 +139,36 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_webhooks: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          payload: Json
+          processed: boolean | null
+          provider: string
+          reference_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          payload: Json
+          processed?: boolean | null
+          provider: string
+          reference_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          payload?: Json
+          processed?: boolean | null
+          provider?: string
+          reference_id?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -147,6 +177,7 @@ export type Database = {
           phone: string | null
           role: Database["public"]["Enums"]["user_role"] | null
           updated_at: string
+          wallet_balance: number | null
         }
         Insert: {
           created_at?: string
@@ -155,6 +186,7 @@ export type Database = {
           phone?: string | null
           role?: Database["public"]["Enums"]["user_role"] | null
           updated_at?: string
+          wallet_balance?: number | null
         }
         Update: {
           created_at?: string
@@ -163,6 +195,7 @@ export type Database = {
           phone?: string | null
           role?: Database["public"]["Enums"]["user_role"] | null
           updated_at?: string
+          wallet_balance?: number | null
         }
         Relationships: []
       }
@@ -192,6 +225,75 @@ export type Database = {
           referrer_id?: string
         }
         Relationships: []
+      }
+      transactions: {
+        Row: {
+          amount: number
+          completed_at: string | null
+          created_at: string
+          description: string | null
+          id: string
+          metadata: Json | null
+          payment_method: string | null
+          phone_number: string | null
+          reference_id: string | null
+          related_investment_id: string | null
+          related_withdrawal_id: string | null
+          status: string
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          payment_method?: string | null
+          phone_number?: string | null
+          reference_id?: string | null
+          related_investment_id?: string | null
+          related_withdrawal_id?: string | null
+          status?: string
+          type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          completed_at?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          metadata?: Json | null
+          payment_method?: string | null
+          phone_number?: string | null
+          reference_id?: string | null
+          related_investment_id?: string | null
+          related_withdrawal_id?: string | null
+          status?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transactions_related_investment_id_fkey"
+            columns: ["related_investment_id"]
+            isOneToOne: false
+            referencedRelation: "investments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transactions_related_withdrawal_id_fkey"
+            columns: ["related_withdrawal_id"]
+            isOneToOne: false
+            referencedRelation: "withdrawals"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       withdrawals: {
         Row: {

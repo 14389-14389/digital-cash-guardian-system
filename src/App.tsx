@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -14,6 +13,7 @@ import Referrals from "./pages/Referrals";
 import Settings from "./pages/Settings";
 import DashboardLayout from "./components/Dashboard/DashboardLayout";
 import NotFound from "./pages/NotFound";
+import Wallet from "./pages/Wallet";
 
 const queryClient = new QueryClient();
 
@@ -78,6 +78,7 @@ const App = () => (
             <Route index element={<Dashboard />} />
             <Route path="packages" element={<Packages />} />
             <Route path="investments" element={<Investments />} />
+            <Route path="wallet" element={<Wallet />} />
             <Route path="withdrawals" element={<Withdrawals />} />
             <Route path="referrals" element={<Referrals />} />
             <Route path="settings" element={<Settings />} />
