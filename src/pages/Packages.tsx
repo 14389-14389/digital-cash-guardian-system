@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useWallet } from '@/hooks/useWallet';
@@ -23,7 +22,7 @@ interface Package {
 
 const Packages = () => {
   const { user } = useAuth();
-  const { wallet, refreshWallet } = useWallet();
+  const { balance, refreshWallet } = useWallet();
   const { toast } = useToast();
   const [packages, setPackages] = useState<Package[]>([]);
   const [loading, setLoading] = useState(true);
@@ -73,7 +72,7 @@ const Packages = () => {
       return;
     }
 
-    if (!wallet || wallet.balance < packageData.price) {
+    if (balance < packageData.price) {
       toast({
         title: "Insufficient Balance",
         description: "Please deposit funds to your wallet first",
@@ -185,30 +184,28 @@ const Packages = () => {
       </div>
 
       {/* Wallet Balance Display */}
-      {wallet && (
-        <Card className="bg-gradient-to-r from-green-50 to-green-100">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Available Balance</p>
-                <p className="text-2xl font-bold text-green-600">{formatCurrency(wallet.balance)}</p>
-              </div>
-              <Button 
-                onClick={() => window.location.href = '/dashboard/wallet'} 
-                variant="outline"
-              >
-                Deposit Funds
-              </Button>
+      <Card className="bg-gradient-to-r from-green-50 to-green-100">
+        <CardContent className="p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600">Available Balance</p>
+              <p className="text-2xl font-bold text-green-600">{formatCurrency(balance)}</p>
             </div>
-          </CardContent>
-        </Card>
-      )}
+            <Button 
+              onClick={() => window.location.href = '/dashboard/wallet'} 
+              variant="outline"
+            >
+              Deposit Funds
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {packages.map((pkg) => {
           const Icon = getPackageIcon(pkg.type);
           const colorClass = getPackageColor(pkg.type);
-          const canAfford = wallet && wallet.balance >= pkg.price;
+          const canAfford = balance >= pkg.price;
           
           return (
             <Card key={pkg.id} className={`bg-gradient-to-br ${colorClass} border-2 transition-all hover:shadow-lg`}>
@@ -265,7 +262,7 @@ const Packages = () => {
 
                 {!canAfford && (
                   <p className="text-xs text-red-600 text-center">
-                    Deposit {formatCurrency(pkg.price - (wallet?.balance || 0))} more to invest
+                    Deposit {formatCurrency(pkg.price - balance)} more to invest
                   </p>
                 )}
               </CardContent>
