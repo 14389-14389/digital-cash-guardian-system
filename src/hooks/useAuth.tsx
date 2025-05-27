@@ -79,7 +79,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const isAdmin = profile?.role === 'admin';
+  // Check if user is admin based on the new email
+  const isAdmin = profile?.role === 'admin' || user?.email === 'kevinkisaa@gmail.com';
 
   return (
     <AuthContext.Provider value={{ user, session, profile, loading, isAdmin }}>

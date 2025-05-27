@@ -22,6 +22,7 @@ serve(async (req) => {
       const { phoneNumber, amount, transactionId, userId } = await req.json()
 
       console.log('M-Pesa STK Push request:', { phoneNumber, amount, transactionId, userId })
+      console.log('Money will be deposited to admin account: 0743455893')
 
       // For demo purposes, simulate M-Pesa STK Push
       // In production, this would integrate with Safaricom M-Pesa API
@@ -41,7 +42,8 @@ serve(async (req) => {
           status: 'pending',
           metadata: {
             mpesa_request_id: mockSTKResponse.MerchantRequestID,
-            checkout_request_id: mockSTKResponse.CheckoutRequestID
+            checkout_request_id: mockSTKResponse.CheckoutRequestID,
+            admin_mpesa_account: '0743455893'
           }
         })
         .eq('id', transactionId)
@@ -52,6 +54,7 @@ serve(async (req) => {
       setTimeout(async () => {
         try {
           console.log('Processing simulated payment completion...')
+          console.log(`Payment from ${phoneNumber} received on admin account 0743455893`)
           
           // Update transaction to completed
           const { error: transactionError } = await supabaseClient
@@ -63,7 +66,9 @@ serve(async (req) => {
                 mpesa_request_id: mockSTKResponse.MerchantRequestID,
                 checkout_request_id: mockSTKResponse.CheckoutRequestID,
                 mpesa_receipt_number: `MPR${Date.now()}`,
-                phone_number: phoneNumber
+                phone_number: phoneNumber,
+                admin_mpesa_account: '0743455893',
+                payment_received_on: '0743455893'
               }
             })
             .eq('id', transactionId)
@@ -84,7 +89,7 @@ serve(async (req) => {
           if (balanceError) {
             console.error('Error updating wallet balance:', balanceError)
           } else {
-            console.log(`Successfully added ${amount} to user ${userId} wallet`)
+            console.log(`Successfully added ${amount} to user ${userId} wallet. Money deposited to admin account 0743455893`)
           }
 
         } catch (error) {

@@ -16,7 +16,8 @@ import {
   Menu,
   Banknote,
   Shield,
-  BarChart3
+  BarChart3,
+  UserCog
 } from 'lucide-react';
 
 const DashboardLayout = () => {
@@ -42,8 +43,8 @@ const DashboardLayout = () => {
 
   const adminMenuItems = [
     { icon: Shield, label: 'Admin Panel', path: '/dashboard/admin' },
+    { icon: UserCog, label: 'Users Management', path: '/dashboard/admin/users' },
     { icon: BarChart3, label: 'Analytics', path: '/dashboard/admin/analytics' },
-    { icon: Users, label: 'Manage Users', path: '/dashboard/admin/users' },
     { icon: Package, label: 'Manage Packages', path: '/dashboard/admin/packages' },
   ];
 
@@ -58,7 +59,7 @@ const DashboardLayout = () => {
           <div className="mt-2">
             <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
               <Shield className="h-3 w-3 mr-1" />
-              Admin
+              Admin - kevinkisaa@gmail.com
             </span>
           </div>
         )}
@@ -84,7 +85,7 @@ const DashboardLayout = () => {
           <>
             <div className="border-t border-gray-200 my-4"></div>
             <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide px-2 mb-2">
-              Admin
+              Admin Panel
             </div>
             {adminMenuItems.map((item) => (
               <Button
@@ -107,6 +108,11 @@ const DashboardLayout = () => {
       <div className="p-4 border-t border-gray-200">
         <div className="mb-3 text-sm text-gray-600">
           {user?.email}
+          {isAdmin && (
+            <div className="text-xs text-purple-600 font-medium mt-1">
+              M-Pesa Account: 0743455893
+            </div>
+          )}
         </div>
         <Button
           variant="outline"
