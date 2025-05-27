@@ -14,11 +14,13 @@ import {
   Settings, 
   LogOut, 
   Menu,
-  Banknote
+  Banknote,
+  Shield,
+  BarChart3
 } from 'lucide-react';
 
 const DashboardLayout = () => {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -32,9 +34,17 @@ const DashboardLayout = () => {
     { icon: Home, label: 'Dashboard', path: '/dashboard' },
     { icon: Package, label: 'Packages', path: '/dashboard/packages' },
     { icon: TrendingUp, label: 'My Investments', path: '/dashboard/investments' },
+    { icon: CreditCard, label: 'Wallet', path: '/dashboard/wallet' },
     { icon: CreditCard, label: 'Withdrawals', path: '/dashboard/withdrawals' },
     { icon: Users, label: 'Referrals', path: '/dashboard/referrals' },
     { icon: Settings, label: 'Settings', path: '/dashboard/settings' },
+  ];
+
+  const adminMenuItems = [
+    { icon: Shield, label: 'Admin Panel', path: '/dashboard/admin' },
+    { icon: BarChart3, label: 'Analytics', path: '/dashboard/admin/analytics' },
+    { icon: Users, label: 'Manage Users', path: '/dashboard/admin/users' },
+    { icon: Package, label: 'Manage Packages', path: '/dashboard/admin/packages' },
   ];
 
   const Sidebar = ({ mobile = false }) => (
@@ -44,6 +54,14 @@ const DashboardLayout = () => {
           <Banknote className="h-8 w-8 text-blue-600" />
           <h1 className="text-xl font-bold text-gray-900">Cash-telle</h1>
         </div>
+        {isAdmin && (
+          <div className="mt-2">
+            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+              <Shield className="h-3 w-3 mr-1" />
+              Admin
+            </span>
+          </div>
+        )}
       </div>
       
       <nav className="flex-1 p-4 space-y-2">
@@ -61,6 +79,29 @@ const DashboardLayout = () => {
             {item.label}
           </Button>
         ))}
+        
+        {isAdmin && (
+          <>
+            <div className="border-t border-gray-200 my-4"></div>
+            <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide px-2 mb-2">
+              Admin
+            </div>
+            {adminMenuItems.map((item) => (
+              <Button
+                key={item.path}
+                variant={location.pathname === item.path ? 'default' : 'ghost'}
+                className="w-full justify-start"
+                onClick={() => {
+                  navigate(item.path);
+                  if (mobile) setSidebarOpen(false);
+                }}
+              >
+                <item.icon className="h-4 w-4 mr-2" />
+                {item.label}
+              </Button>
+            ))}
+          </>
+        )}
       </nav>
       
       <div className="p-4 border-t border-gray-200">

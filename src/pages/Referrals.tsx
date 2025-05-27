@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { formatDistanceToNow } from 'date-fns';
-import { Users, Copy, Share, DollarSign, UserPlus } from 'lucide-react';
+import { Users, Copy, Share, DollarSign, UserPlus, MessageCircle } from 'lucide-react';
 
 interface Referral {
   id: string;
@@ -84,6 +84,34 @@ const Referrals = () => {
     }
   };
 
+  const shareViaWhatsApp = () => {
+    const referralLink = `${window.location.origin}/auth?ref=${referralCode}`;
+    const message = `🚀 *Join Cash-telle Investment Platform!* 💰
+
+Start earning daily returns on your investments with our secure platform.
+
+✅ Daily earnings up to 10%
+✅ Multiple investment packages
+✅ Secure M-Pesa payments
+✅ Real-time tracking
+✅ Instant withdrawals
+
+Use my referral code: *${referralCode}*
+
+👇 Sign up now:
+${referralLink}
+
+#Investment #EarnDaily #CashTelle #Kenya`;
+
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
+    
+    toast({
+      title: "WhatsApp Opened!",
+      description: "Share your referral link via WhatsApp",
+    });
+  };
+
   const formatCurrency = (amount: number) => {
     return `KES ${amount.toLocaleString()}`;
   };
@@ -140,7 +168,11 @@ const Referrals = () => {
             </Button>
           </div>
           <div className="flex space-x-2">
-            <Button onClick={shareReferralLink} className="flex-1">
+            <Button onClick={shareViaWhatsApp} className="flex-1 bg-green-600 hover:bg-green-700">
+              <MessageCircle className="h-4 w-4 mr-2" />
+              Share via WhatsApp
+            </Button>
+            <Button onClick={shareReferralLink} variant="outline" className="flex-1">
               <Share className="h-4 w-4 mr-2" />
               Share Link
             </Button>
@@ -183,21 +215,21 @@ const Referrals = () => {
                 <Share className="h-6 w-6 text-blue-600" />
               </div>
               <h3 className="font-semibold mb-2">1. Share Your Code</h3>
-              <p className="text-sm text-gray-600">Share your unique referral code with friends and family</p>
+              <p className="text-sm text-gray-600">Share your unique referral code with friends and family via WhatsApp</p>
             </div>
             <div className="text-center p-4">
               <div className="bg-green-100 rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-3">
                 <UserPlus className="h-6 w-6 text-green-600" />
               </div>
               <h3 className="font-semibold mb-2">2. Friend Joins</h3>
-              <p className="text-sm text-gray-600">They sign up and make their first investment</p>
+              <p className="text-sm text-gray-600">They sign up and make their first investment using your code</p>
             </div>
             <div className="text-center p-4">
               <div className="bg-purple-100 rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-3">
                 <DollarSign className="h-6 w-6 text-purple-600" />
               </div>
               <h3 className="font-semibold mb-2">3. You Earn</h3>
-              <p className="text-sm text-gray-600">Get 10% commission on their investment amount</p>
+              <p className="text-sm text-gray-600">Get 10% commission on their investment amount instantly</p>
             </div>
           </div>
         </CardContent>
@@ -211,7 +243,11 @@ const Referrals = () => {
             <CardContent className="p-8 text-center">
               <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">No referrals yet</h3>
-              <p className="text-gray-600">Start sharing your referral code to earn commissions!</p>
+              <p className="text-gray-600 mb-4">Start sharing your referral code via WhatsApp to earn commissions!</p>
+              <Button onClick={shareViaWhatsApp} className="bg-green-600 hover:bg-green-700">
+                <MessageCircle className="h-4 w-4 mr-2" />
+                Share on WhatsApp
+              </Button>
             </CardContent>
           </Card>
         ) : (
