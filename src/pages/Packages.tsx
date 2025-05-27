@@ -84,7 +84,7 @@ const Packages = () => {
     setInvesting(packageData.id);
 
     try {
-      // Create investment record
+      // Create investment record first
       const { data: investment, error: investmentError } = await supabase
         .from('investments')
         .insert({
@@ -103,13 +103,13 @@ const Packages = () => {
 
       if (investmentError) throw investmentError;
 
-      // Create transaction record
+      // Create transaction record for the investment
       const { error: transactionError } = await supabase
         .from('transactions')
         .insert({
           user_id: user.id,
           type: 'investment',
-          amount: -packageData.price,
+          amount: -packageData.price, // Negative amount for deduction
           status: 'completed',
           payment_method: 'wallet',
           description: `Investment in ${packageData.name} package`,
@@ -119,13 +119,31 @@ const Packages = () => {
 
       if (transactionError) throw transactionError;
 
+      // Update wallet balance by deducting the investment amount
+      const { error: balanceError } = await supabase
+        .from('profiles')
+        .update({
+          wallet_balance: balance - packageData.price
+        })
+        .eq('id', user.id);
+
+      if (balanceError) throw balanceError;
+
       // Refresh wallet to show updated balance
       await refreshWallet();
 
       toast({
         title: "Investment Successful!",
-        description: `You have successfully invested in ${packageData.name}`,
+        description: `You have successfully invested in ${packageData.name}. Daily earnings will start tomorrow.`,
       });
+
+      // Show investment details
+      setTimeout(() => {
+        toast({
+          title: "Investment Active",
+          description: `Daily earning: KES ${packageData.daily_earning.toLocaleString()} for ${packageData.duration_days} days`,
+        });
+      }, 2000);
 
     } catch (error: any) {
       console.error('Investment error:', error);
@@ -255,7 +273,7 @@ const Packages = () => {
                   disabled={!canAfford || investing === pkg.id}
                   className="w-full"
                 >
-                  {investing === pkg.id ? 'Processing...' : 
+                  {investing === pkg.id ? 'Processing Investment...' : 
                    !canAfford ? 'Insufficient Balance' : 
                    'Invest Now'}
                 </Button>

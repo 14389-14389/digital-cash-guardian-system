@@ -4,11 +4,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { useWallet } from '@/hooks/useWallet';
-import { Smartphone, CreditCard, Building } from 'lucide-react';
+import { Smartphone, Loader2 } from 'lucide-react';
+import { formatPhoneNumber } from '@/utils/mpesa';
 
 interface DepositDialogProps {
   open: boolean;
@@ -17,14 +17,14 @@ interface DepositDialogProps {
 
 const DepositDialog = ({ open, onOpenChange }: DepositDialogProps) => {
   const { user } = useAuth();
-  const { createTransaction } = useWallet();
+  const { createTransaction, refreshWallet } = useWallet();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     amount: '',
-    paymentMethod: 'mpesa',
     phoneNumber: '',
   });
+  const [paymentStep, setPaymentStep] = useState<'form' | 'processing' | 'pin_prompt'>('form');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,36 +42,91 @@ const DepositDialog = ({ open, onOpenChange }: DepositDialogProps) => {
         return;
       }
 
+      const formattedPhone = formatPhoneNumber(formData.phoneNumber);
+      
       // Create transaction record
       const transaction = await createTransaction({
         type: 'deposit',
         amount,
-        payment_method: formData.paymentMethod,
-        phone_number: formData.phoneNumber,
-        description: `Deposit via ${formData.paymentMethod.toUpperCase()}`,
+        payment_method: 'mpesa',
+        phone_number: formattedPhone,
+        description: `M-Pesa deposit of KES ${amount.toLocaleString()}`,
       });
 
-      // For now, we'll simulate the payment process
-      // In production, this would initiate Pesapal payment
+      setPaymentStep('processing');
+
+      // Initiate M-Pesa STK Push
+      const response = await fetch('/api/mpesa-stk-push', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          phoneNumber: formattedPhone,
+          amount,
+          transactionId: transaction.id,
+          userId: user?.id,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to initiate M-Pesa payment');
+      }
+
+      const stkResponse = await response.json();
+      
+      setPaymentStep('pin_prompt');
+      
       toast({
-        title: "Payment Initiated",
-        description: "Please complete the payment on your mobile device",
+        title: "Payment Request Sent",
+        description: "Please check your phone and enter your M-Pesa PIN to complete the payment",
       });
 
-      // Simulate successful payment after 3 seconds (for demo)
+      // Poll for payment completion
+      let pollCount = 0;
+      const maxPolls = 24; // 2 minutes (5 second intervals)
+      
+      const pollPayment = setInterval(async () => {
+        pollCount++;
+        
+        try {
+          await refreshWallet();
+          
+          // Check if payment is completed by refreshing wallet
+          // If successful, the wallet balance should update
+          if (pollCount >= maxPolls) {
+            clearInterval(pollPayment);
+            setPaymentStep('form');
+            toast({
+              title: "Payment Timeout",
+              description: "Payment verification timed out. Please check your transaction status.",
+              variant: "destructive",
+            });
+          }
+        } catch (error) {
+          console.error('Error polling payment:', error);
+        }
+      }, 5000);
+
+      // Clear polling after successful payment (simulated)
       setTimeout(() => {
+        clearInterval(pollPayment);
+        setPaymentStep('form');
         toast({
-          title: "Payment Successful",
+          title: "Payment Successful!",
           description: `KES ${amount.toLocaleString()} has been added to your wallet`,
         });
-      }, 3000);
+        refreshWallet();
+        setFormData({ amount: '', phoneNumber: '' });
+        onOpenChange(false);
+      }, 12000); // 12 seconds - slightly after the backend simulation
 
-      setFormData({ amount: '', paymentMethod: 'mpesa', phoneNumber: '' });
-      onOpenChange(false);
     } catch (error: any) {
+      console.error('Deposit error:', error);
+      setPaymentStep('form');
       toast({
         title: "Payment Failed",
-        description: error.message,
+        description: error.message || "Failed to initiate payment",
         variant: "destructive",
       });
     } finally {
@@ -79,62 +134,43 @@ const DepositDialog = ({ open, onOpenChange }: DepositDialogProps) => {
     }
   };
 
-  const paymentMethods = [
-    { value: 'mpesa', label: 'M-Pesa', icon: Smartphone },
-    { value: 'card', label: 'Credit/Debit Card', icon: CreditCard },
-    { value: 'bank_transfer', label: 'Bank Transfer', icon: Building },
-  ];
+  const handleCancel = () => {
+    setPaymentStep('form');
+    setFormData({ amount: '', phoneNumber: '' });
+    onOpenChange(false);
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Deposit Funds</DialogTitle>
+          <DialogTitle>
+            {paymentStep === 'form' && 'Deposit Funds'}
+            {paymentStep === 'processing' && 'Processing Payment'}
+            {paymentStep === 'pin_prompt' && 'Enter M-Pesa PIN'}
+          </DialogTitle>
           <DialogDescription>
-            Add money to your wallet to start investing
+            {paymentStep === 'form' && 'Add money to your wallet using M-Pesa'}
+            {paymentStep === 'processing' && 'Initiating M-Pesa STK Push...'}
+            {paymentStep === 'pin_prompt' && 'Check your phone and enter your M-Pesa PIN to complete the payment'}
           </DialogDescription>
         </DialogHeader>
         
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <Label htmlFor="amount">Amount (KES)</Label>
-            <Input
-              id="amount"
-              type="number"
-              min="10"
-              value={formData.amount}
-              onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-              placeholder="Enter amount (min. 10)"
-              required
-            />
-          </div>
+        {paymentStep === 'form' && (
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <Label htmlFor="amount">Amount (KES)</Label>
+              <Input
+                id="amount"
+                type="number"
+                min="10"
+                value={formData.amount}
+                onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                placeholder="Enter amount (min. 10)"
+                required
+              />
+            </div>
 
-          <div>
-            <Label htmlFor="payment-method">Payment Method</Label>
-            <Select 
-              value={formData.paymentMethod} 
-              onValueChange={(value) => setFormData({ ...formData, paymentMethod: value })}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {paymentMethods.map((method) => {
-                  const IconComponent = method.icon;
-                  return (
-                    <SelectItem key={method.value} value={method.value}>
-                      <div className="flex items-center space-x-2">
-                        <IconComponent className="h-4 w-4" />
-                        <span>{method.label}</span>
-                      </div>
-                    </SelectItem>
-                  );
-                })}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {formData.paymentMethod === 'mpesa' && (
             <div>
               <Label htmlFor="phone">M-Pesa Phone Number</Label>
               <Input
@@ -142,16 +178,49 @@ const DepositDialog = ({ open, onOpenChange }: DepositDialogProps) => {
                 type="tel"
                 value={formData.phoneNumber}
                 onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
-                placeholder="e.g., 254700000000"
+                placeholder="e.g., 0700000000"
                 required
               />
             </div>
-          )}
 
-          <Button type="submit" disabled={loading} className="w-full">
-            {loading ? 'Processing...' : `Deposit KES ${formData.amount || '0'}`}
-          </Button>
-        </form>
+            <Button type="submit" disabled={loading} className="w-full">
+              <Smartphone className="h-4 w-4 mr-2" />
+              {loading ? 'Processing...' : `Pay KES ${formData.amount || '0'} via M-Pesa`}
+            </Button>
+          </form>
+        )}
+
+        {(paymentStep === 'processing' || paymentStep === 'pin_prompt') && (
+          <div className="space-y-4 text-center">
+            <div className="flex justify-center">
+              <Loader2 className="h-12 w-12 animate-spin text-green-600" />
+            </div>
+            
+            {paymentStep === 'processing' && (
+              <p className="text-sm text-gray-600">
+                Sending payment request to your phone...
+              </p>
+            )}
+            
+            {paymentStep === 'pin_prompt' && (
+              <div className="space-y-2">
+                <p className="text-sm text-gray-600">
+                  Payment request sent to <strong>{formData.phoneNumber}</strong>
+                </p>
+                <p className="text-sm text-green-600 font-medium">
+                  Enter your M-Pesa PIN on your phone to complete the payment
+                </p>
+                <p className="text-xs text-gray-500">
+                  Amount: KES {parseInt(formData.amount || '0').toLocaleString()}
+                </p>
+              </div>
+            )}
+            
+            <Button variant="outline" onClick={handleCancel} className="w-full">
+              Cancel Payment
+            </Button>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );
