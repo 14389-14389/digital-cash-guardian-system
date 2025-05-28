@@ -18,64 +18,89 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // Check if admin user already exists
-    const { data: existingUser } = await supabaseAdmin.auth.admin.getUserByEmail('kevinkisaa@gmail.com')
-    
-    if (existingUser?.user) {
-      // Update existing user to admin role
-      await supabaseAdmin
-        .from('profiles')
-        .update({ role: 'admin' })
-        .eq('id', existingUser.user.id)
-      
-      return new Response(JSON.stringify({ 
-        message: 'Admin user already exists and role updated',
-        user: existingUser.user 
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
-      })
+    // First, try to delete any existing admin user to start fresh
+    try {
+      const { data: existingUser } = await supabaseAdmin.auth.admin.getUserByEmail('kevinkisaa@gmail.com')
+      if (existingUser?.user) {
+        console.log('Deleting existing admin user...')
+        await supabaseAdmin.auth.admin.deleteUser(existingUser.user.id)
+      }
+    } catch (error) {
+      console.log('No existing user to delete or error deleting:', error)
     }
 
-    // Create admin user
-    const { data: newUser, error } = await supabaseAdmin.auth.admin.createUser({
+    // Create new admin user with correct credentials
+    console.log('Creating new admin user...')
+    const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
       email: 'kevinkisaa@gmail.com',
       password: 'Alfaromeo001@',
       email_confirm: true,
       user_metadata: {
         full_name: 'Kevin Kisaa',
+        phone: '0743455893',
         role: 'admin'
       }
     })
 
-    if (error) throw error
-
-    // Update profile to admin
-    if (newUser.user) {
-      await supabaseAdmin
-        .from('profiles')
-        .update({ 
-          role: 'admin',
-          full_name: 'Kevin Kisaa'
-        })
-        .eq('id', newUser.user.id)
+    if (createError) {
+      console.error('Error creating user:', createError)
+      throw createError
     }
 
-    console.log('Admin user created successfully: kevinkisaa@gmail.com')
-    console.log('M-Pesa account configured: 0743455893')
+    console.log('Admin user created successfully:', newUser.user?.id)
+
+    // Create or update profile for admin user
+    if (newUser.user) {
+      const { error: profileError } = await supabaseAdmin
+        .from('profiles')
+        .upsert({ 
+          id: newUser.user.id,
+          full_name: 'Kevin Kisaa',
+          phone: '0743455893',
+          role: 'admin',
+          wallet_balance: 0
+        }, {
+          onConflict: 'id'
+        })
+
+      if (profileError) {
+        console.error('Error creating profile:', profileError)
+        throw profileError
+      }
+
+      console.log('Profile created/updated successfully')
+    }
+
+    console.log('✅ Admin setup complete!')
+    console.log('📧 Email: kevinkisaa@gmail.com')
+    console.log('🔑 Password: Alfaromeo001@')
+    console.log('📱 M-Pesa: 0743455893')
 
     return new Response(JSON.stringify({ 
+      success: true,
       message: 'Admin user created successfully',
-      user: newUser.user,
-      mpesa_account: '0743455893'
+      credentials: {
+        email: 'kevinkisaa@gmail.com',
+        password: 'Alfaromeo001@',
+        mpesa: '0743455893'
+      },
+      user: {
+        id: newUser.user?.id,
+        email: newUser.user?.email,
+        role: 'admin'
+      }
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     })
 
   } catch (error) {
-    console.error('Error creating admin user:', error)
-    return new Response(JSON.stringify({ error: error.message }), {
+    console.error('❌ Error in admin creation:', error)
+    return new Response(JSON.stringify({ 
+      success: false,
+      error: error.message,
+      details: 'Failed to create admin user. Please check logs for more details.'
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,
     })
