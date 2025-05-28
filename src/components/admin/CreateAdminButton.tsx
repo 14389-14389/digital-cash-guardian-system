@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Shield, Key } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { supabase } from '@/integrations/supabase/client';
 
 const CreateAdminButton = () => {
   const [loading, setLoading] = useState(false);
@@ -13,40 +14,28 @@ const CreateAdminButton = () => {
   const createAdmin = async () => {
     setLoading(true);
     try {
-      console.log('Calling create-admin function...');
+      console.log('Calling create-admin function via Supabase...');
       
-      const response = await fetch('/api/create-admin', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+      const { data, error } = await supabase.functions.invoke('create-admin', {
+        body: {}
       });
 
-      console.log('Response status:', response.status);
-      console.log('Response headers:', response.headers);
+      console.log('Function response:', data);
+      console.log('Function error:', error);
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      if (error) {
+        console.error('Supabase function error:', error);
+        throw new Error(error.message || 'Failed to invoke function');
       }
 
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        const text = await response.text();
-        console.error('Non-JSON response:', text);
-        throw new Error('Server returned invalid response format');
-      }
-
-      const result = await response.json();
-      console.log('API Response:', result);
-
-      if (result.success) {
+      if (data && data.success) {
         setAdminCreated(true);
         toast({
           title: "Admin Created Successfully!",
           description: "You can now log in with the admin credentials.",
         });
       } else {
-        throw new Error(result.error || 'Failed to create admin');
+        throw new Error(data?.error || 'Failed to create admin');
       }
     } catch (error: any) {
       console.error('Error creating admin:', error);
