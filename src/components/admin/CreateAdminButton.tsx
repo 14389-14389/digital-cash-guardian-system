@@ -13,6 +13,8 @@ const CreateAdminButton = () => {
   const createAdmin = async () => {
     setLoading(true);
     try {
+      console.log('Calling create-admin function...');
+      
       const response = await fetch('/api/create-admin', {
         method: 'POST',
         headers: {
@@ -20,7 +22,22 @@ const CreateAdminButton = () => {
         },
       });
 
+      console.log('Response status:', response.status);
+      console.log('Response headers:', response.headers);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text();
+        console.error('Non-JSON response:', text);
+        throw new Error('Server returned invalid response format');
+      }
+
       const result = await response.json();
+      console.log('API Response:', result);
 
       if (result.success) {
         setAdminCreated(true);
@@ -32,9 +49,10 @@ const CreateAdminButton = () => {
         throw new Error(result.error || 'Failed to create admin');
       }
     } catch (error: any) {
+      console.error('Error creating admin:', error);
       toast({
         title: "Error",
-        description: error.message || "Failed to create admin user",
+        description: error.message || "Failed to create admin user. Please check the console for details.",
         variant: "destructive",
       });
     } finally {
