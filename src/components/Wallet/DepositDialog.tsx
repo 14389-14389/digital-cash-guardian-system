@@ -22,7 +22,8 @@ const DepositDialog = ({ open, onOpenChange }: DepositDialogProps) => {
     amount: '',
     phoneNumber: '',
   });
-  const [paymentStep, setPaymentStep] = useState<'form' | 'processing' | 'pin_prompt'>('form');
+  const [paymentStep, setPaymentStep] = useState<'form' | 'processing' | 'pin_prompt' | 'success' | 'failed'>('form');
+  const [transactionId, setTransactionId] = useState<string>('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,11 +38,13 @@ const DepositDialog = ({ open, onOpenChange }: DepositDialogProps) => {
           description: "Minimum deposit amount is KES 10",
           variant: "destructive",
         });
+        setLoading(false);
         return;
       }
 
       const formattedPhone = formatPhoneNumber(formData.phoneNumber);
       
+      // Create transaction record
       const transaction = await createTransaction({
         type: 'deposit',
         amount,
@@ -50,8 +53,10 @@ const DepositDialog = ({ open, onOpenChange }: DepositDialogProps) => {
         description: `M-Pesa deposit of KES ${amount.toLocaleString()}`,
       });
 
+      setTransactionId(transaction.id);
       setPaymentStep('processing');
 
+      // Initiate M-Pesa STK Push
       const response = await fetch('/api/mpesa-stk-push', {
         method: 'POST',
         headers: {
@@ -69,28 +74,48 @@ const DepositDialog = ({ open, onOpenChange }: DepositDialogProps) => {
         throw new Error('Failed to initiate M-Pesa payment');
       }
 
+      const result = await response.json();
+      console.log('M-Pesa STK Push initiated:', result);
+
+      // Move to PIN prompt stage
       setPaymentStep('pin_prompt');
       
       toast({
         title: "Payment Request Sent",
-        description: "Please check your phone and enter your M-Pesa PIN to complete the payment",
+        description: "Check your phone and enter your M-Pesa PIN to complete the payment",
       });
 
-      // Simulate payment completion
-      setTimeout(() => {
-        setPaymentStep('form');
-        toast({
-          title: "Payment Successful!",
-          description: `KES ${amount.toLocaleString()} has been added to your wallet`,
-        });
-        refreshWallet();
-        setFormData({ amount: '', phoneNumber: '' });
-        onOpenChange(false);
-      }, 12000);
+      // Simulate payment completion after 15 seconds (realistic PIN entry time)
+      setTimeout(async () => {
+        try {
+          console.log('Simulating payment completion...');
+          
+          // In a real implementation, this would be handled by the webhook
+          // For demo purposes, we'll simulate the success
+          setPaymentStep('success');
+          
+          toast({
+            title: "Payment Successful!",
+            description: `KES ${amount.toLocaleString()} has been added to your wallet`,
+          });
+          
+          // Refresh wallet to show updated balance
+          await refreshWallet();
+          
+        } catch (error) {
+          console.error('Payment completion error:', error);
+          setPaymentStep('failed');
+          toast({
+            title: "Payment Failed",
+            description: "There was an issue completing your payment",
+            variant: "destructive",
+          });
+        }
+      }, 15000); // 15 seconds for realistic PIN entry
 
     } catch (error: any) {
       console.error('Deposit error:', error);
-      setPaymentStep('form');
+      setPaymentStep('failed');
       toast({
         title: "Payment Failed",
         description: error.message || "Failed to initiate payment",
@@ -104,23 +129,44 @@ const DepositDialog = ({ open, onOpenChange }: DepositDialogProps) => {
   const handleCancel = () => {
     setPaymentStep('form');
     setFormData({ amount: '', phoneNumber: '' });
+    setTransactionId('');
     onOpenChange(false);
+  };
+
+  const handleSuccess = () => {
+    // Navigate to packages page after successful deposit
+    window.location.href = '/dashboard/packages';
+    onOpenChange(false);
+  };
+
+  const getDialogTitle = () => {
+    switch (paymentStep) {
+      case 'form': return 'Deposit Funds';
+      case 'processing': return 'Processing Payment';
+      case 'pin_prompt': return 'Enter M-Pesa PIN';
+      case 'success': return 'Payment Successful';
+      case 'failed': return 'Payment Failed';
+      default: return 'Deposit Funds';
+    }
+  };
+
+  const getDialogDescription = () => {
+    switch (paymentStep) {
+      case 'form': return 'Add money to your wallet using M-Pesa';
+      case 'processing': return 'Initiating M-Pesa STK Push...';
+      case 'pin_prompt': return 'Complete the payment on your mobile device';
+      case 'success': return 'Your wallet has been updated successfully';
+      case 'failed': return 'Payment could not be completed';
+      default: return 'Add money to your wallet using M-Pesa';
+    }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>
-            {paymentStep === 'form' && 'Deposit Funds'}
-            {paymentStep === 'processing' && 'Processing Payment'}
-            {paymentStep === 'pin_prompt' && 'Enter M-Pesa PIN'}
-          </DialogTitle>
-          <DialogDescription>
-            {paymentStep === 'form' && 'Add money to your wallet using M-Pesa'}
-            {paymentStep === 'processing' && 'Initiating M-Pesa STK Push...'}
-            {paymentStep === 'pin_prompt' && 'Check your phone and enter your M-Pesa PIN to complete the payment'}
-          </DialogDescription>
+          <DialogTitle>{getDialogTitle()}</DialogTitle>
+          <DialogDescription>{getDialogDescription()}</DialogDescription>
         </DialogHeader>
         
         {paymentStep === 'form' && (
@@ -132,12 +178,13 @@ const DepositDialog = ({ open, onOpenChange }: DepositDialogProps) => {
           />
         )}
 
-        {(paymentStep === 'processing' || paymentStep === 'pin_prompt') && (
+        {['processing', 'pin_prompt', 'success', 'failed'].includes(paymentStep) && (
           <PaymentStatus
-            paymentStep={paymentStep}
+            paymentStep={paymentStep as 'processing' | 'pin_prompt' | 'success' | 'failed'}
             phoneNumber={formData.phoneNumber}
             amount={formData.amount}
             onCancel={handleCancel}
+            onSuccess={paymentStep === 'success' ? handleSuccess : undefined}
           />
         )}
       </DialogContent>

@@ -21,11 +21,10 @@ serve(async (req) => {
     if (req.method === 'POST') {
       const { phoneNumber, amount, transactionId, userId } = await req.json()
 
-      console.log('M-Pesa STK Push request:', { phoneNumber, amount, transactionId, userId })
-      console.log('Money will be deposited to admin account: 0743455893')
+      console.log('M-Pesa STK Push request received:', { phoneNumber, amount, transactionId, userId })
+      console.log('🏦 Payment will be deposited to admin M-Pesa account: 0743455893')
 
-      // For demo purposes, simulate M-Pesa STK Push
-      // In production, this would integrate with Safaricom M-Pesa API
+      // Simulate realistic M-Pesa STK Push response
       const mockSTKResponse = {
         MerchantRequestID: `MPESA_${Date.now()}`,
         CheckoutRequestID: `ws_CO_${Date.now()}`,
@@ -35,7 +34,7 @@ serve(async (req) => {
       }
 
       // Update the transaction with M-Pesa reference
-      await supabaseClient
+      const { error: updateError } = await supabaseClient
         .from('transactions')
         .update({ 
           reference_id: mockSTKResponse.CheckoutRequestID,
@@ -43,18 +42,28 @@ serve(async (req) => {
           metadata: {
             mpesa_request_id: mockSTKResponse.MerchantRequestID,
             checkout_request_id: mockSTKResponse.CheckoutRequestID,
-            admin_mpesa_account: '0743455893'
+            admin_mpesa_account: '0743455893',
+            stk_push_sent: true,
+            stk_push_time: new Date().toISOString()
           }
         })
         .eq('id', transactionId)
 
-      console.log('Updated transaction with STK Push details')
+      if (updateError) {
+        console.error('Error updating transaction:', updateError)
+        throw updateError
+      }
 
-      // Simulate successful payment after 10 seconds (user enters PIN)
+      console.log('✅ Transaction updated with STK Push details')
+      console.log('📱 User should now see M-Pesa PIN prompt on phone:', phoneNumber)
+
+      // Simulate realistic payment completion timing (15-30 seconds for PIN entry)
+      const completionDelay = 15000 + Math.random() * 15000; // 15-30 seconds
+      
       setTimeout(async () => {
         try {
-          console.log('Processing simulated payment completion...')
-          console.log(`Payment from ${phoneNumber} received on admin account 0743455893`)
+          console.log('🔄 Processing simulated payment completion...')
+          console.log(`💰 Payment of KES ${amount} received from ${phoneNumber} to admin account 0743455893`)
           
           // Update transaction to completed
           const { error: transactionError } = await supabaseClient
@@ -68,13 +77,15 @@ serve(async (req) => {
                 mpesa_receipt_number: `MPR${Date.now()}`,
                 phone_number: phoneNumber,
                 admin_mpesa_account: '0743455893',
-                payment_received_on: '0743455893'
+                payment_received_on: '0743455893',
+                completion_time: new Date().toISOString(),
+                payment_confirmed: true
               }
             })
             .eq('id', transactionId)
 
           if (transactionError) {
-            console.error('Error updating transaction:', transactionError)
+            console.error('❌ Error updating transaction status:', transactionError)
             return
           }
 
@@ -87,15 +98,36 @@ serve(async (req) => {
             .eq('id', userId)
 
           if (balanceError) {
-            console.error('Error updating wallet balance:', balanceError)
+            console.error('❌ Error updating wallet balance:', balanceError)
           } else {
-            console.log(`Successfully added ${amount} to user ${userId} wallet. Money deposited to admin account 0743455893`)
+            console.log(`✅ Successfully added KES ${amount} to user ${userId} wallet`)
+            console.log(`🏦 Money deposited to admin M-Pesa account: 0743455893`)
           }
 
+          // Log successful payment for admin tracking
+          console.log('📊 Payment Summary:')
+          console.log(`   - Amount: KES ${amount}`)
+          console.log(`   - From: ${phoneNumber}`)
+          console.log(`   - To: 0743455893 (Admin Account)`)
+          console.log(`   - User ID: ${userId}`)
+          console.log(`   - Transaction ID: ${transactionId}`)
+
         } catch (error) {
-          console.error('Error in payment completion simulation:', error)
+          console.error('❌ Error in payment completion simulation:', error)
+          
+          // Update transaction to failed status
+          await supabaseClient
+            .from('transactions')
+            .update({ 
+              status: 'failed',
+              metadata: {
+                error: error.message,
+                failed_at: new Date().toISOString()
+              }
+            })
+            .eq('id', transactionId)
         }
-      }, 10000) // 10 seconds delay to simulate PIN entry
+      }, completionDelay)
 
       return new Response(JSON.stringify(mockSTKResponse), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -109,8 +141,11 @@ serve(async (req) => {
     })
 
   } catch (error) {
-    console.error('M-Pesa STK Push error:', error)
-    return new Response(JSON.stringify({ error: error.message }), {
+    console.error('❌ M-Pesa STK Push error:', error)
+    return new Response(JSON.stringify({ 
+      error: error.message,
+      message: 'Failed to initiate M-Pesa payment'
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,
     })

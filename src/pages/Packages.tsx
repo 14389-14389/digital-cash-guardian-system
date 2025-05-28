@@ -27,6 +27,7 @@ const Packages = () => {
   const [packages, setPackages] = useState<Package[]>([]);
   const [loading, setLoading] = useState(true);
   const [investing, setInvesting] = useState<string | null>(null);
+  const [showDepositPrompt, setShowDepositPrompt] = useState(false);
 
   useEffect(() => {
     fetchPackages();
@@ -73,9 +74,10 @@ const Packages = () => {
     }
 
     if (balance < packageData.price) {
+      setShowDepositPrompt(true);
       toast({
         title: "Insufficient Balance",
-        description: "Please deposit funds to your wallet first",
+        description: `You need KES ${(packageData.price - balance).toLocaleString()} more to invest in this package`,
         variant: "destructive",
       });
       return;
@@ -114,7 +116,14 @@ const Packages = () => {
           payment_method: 'wallet',
           description: `Investment in ${packageData.name} package`,
           completed_at: new Date().toISOString(),
-          related_investment_id: investment.id
+          related_investment_id: investment.id,
+          metadata: {
+            package_name: packageData.name,
+            package_type: packageData.type,
+            daily_earning: packageData.daily_earning,
+            duration_days: packageData.duration_days,
+            investment_start: new Date().toISOString()
+          }
         });
 
       if (transactionError) throw transactionError;
@@ -144,6 +153,11 @@ const Packages = () => {
           description: `Daily earning: KES ${packageData.daily_earning.toLocaleString()} for ${packageData.duration_days} days`,
         });
       }, 2000);
+
+      // Navigate to investments page to see the new investment
+      setTimeout(() => {
+        window.location.href = '/dashboard/investments';
+      }, 3000);
 
     } catch (error: any) {
       console.error('Investment error:', error);
@@ -201,19 +215,25 @@ const Packages = () => {
         <p className="text-gray-600 mt-2">Choose an investment package that suits your goals</p>
       </div>
 
-      {/* Wallet Balance Display */}
+      {/* Enhanced Wallet Balance Display */}
       <Card className="bg-gradient-to-r from-green-50 to-green-100">
         <CardContent className="p-6">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Available Balance</p>
               <p className="text-2xl font-bold text-green-600">{formatCurrency(balance)}</p>
+              {showDepositPrompt && (
+                <p className="text-sm text-orange-600 mt-1">
+                  💡 Deposit funds to start investing
+                </p>
+              )}
             </div>
             <Button 
               onClick={() => window.location.href = '/dashboard/wallet'} 
               variant="outline"
+              className="bg-white hover:bg-gray-50"
             >
-              Deposit Funds
+              💰 Deposit Funds
             </Button>
           </div>
         </CardContent>
@@ -224,9 +244,10 @@ const Packages = () => {
           const Icon = getPackageIcon(pkg.type);
           const colorClass = getPackageColor(pkg.type);
           const canAfford = balance >= pkg.price;
+          const shortfall = pkg.price - balance;
           
           return (
-            <Card key={pkg.id} className={`bg-gradient-to-br ${colorClass} border-2 transition-all hover:shadow-lg`}>
+            <Card key={pkg.id} className={`bg-gradient-to-br ${colorClass} border-2 transition-all hover:shadow-lg ${!canAfford ? 'opacity-75' : ''}`}>
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
@@ -254,6 +275,9 @@ const Packages = () => {
                       {formatCurrency(pkg.daily_earning * pkg.duration_days)}
                     </span>
                   </div>
+                  <div className="text-xs text-purple-600 font-medium">
+                    ROI: {(((pkg.daily_earning * pkg.duration_days - pkg.price) / pkg.price) * 100).toFixed(1)}%
+                  </div>
                 </div>
 
                 <div className="space-y-2">
@@ -271,17 +295,35 @@ const Packages = () => {
                 <Button
                   onClick={() => handleInvest(pkg)}
                   disabled={!canAfford || investing === pkg.id}
-                  className="w-full"
+                  className={`w-full ${canAfford ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-400'}`}
                 >
                   {investing === pkg.id ? 'Processing Investment...' : 
-                   !canAfford ? 'Insufficient Balance' : 
-                   'Invest Now'}
+                   !canAfford ? `Deposit ${formatCurrency(shortfall)} More` : 
+                   '🚀 Invest Now'}
                 </Button>
 
                 {!canAfford && (
-                  <p className="text-xs text-red-600 text-center">
-                    Deposit {formatCurrency(pkg.price - balance)} more to invest
-                  </p>
+                  <div className="bg-orange-50 p-3 rounded-lg border border-orange-200">
+                    <p className="text-xs text-orange-800 text-center">
+                      💡 <strong>Tip:</strong> Deposit {formatCurrency(shortfall)} more to unlock this investment
+                    </p>
+                    <Button 
+                      onClick={() => window.location.href = '/dashboard/wallet'}
+                      variant="outline"
+                      size="sm"
+                      className="w-full mt-2 text-orange-600 border-orange-300 hover:bg-orange-50"
+                    >
+                      Quick Deposit
+                    </Button>
+                  </div>
+                )}
+
+                {canAfford && (
+                  <div className="bg-green-50 p-2 rounded text-center">
+                    <p className="text-xs text-green-800">
+                      ✅ Ready to invest
+                    </p>
+                  </div>
                 )}
               </CardContent>
             </Card>
