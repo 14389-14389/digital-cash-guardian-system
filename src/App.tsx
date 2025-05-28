@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -14,6 +15,8 @@ import Settings from "./pages/Settings";
 import DashboardLayout from "./components/Dashboard/DashboardLayout";
 import NotFound from "./pages/NotFound";
 import Wallet from "./pages/Wallet";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import UsersManagement from "./pages/admin/UsersManagement";
 
 const queryClient = new QueryClient();
 
@@ -30,6 +33,24 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   
   if (!user) {
     return <Navigate to="/auth" replace />;
+  }
+  
+  return <>{children}</>;
+};
+
+const AdminRoute = ({ children }: { children: React.ReactNode }) => {
+  const { isAdmin, loading } = useAuth();
+  
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+  
+  if (!isAdmin) {
+    return <Navigate to="/dashboard" replace />;
   }
   
   return <>{children}</>;
@@ -82,6 +103,16 @@ const App = () => (
             <Route path="withdrawals" element={<Withdrawals />} />
             <Route path="referrals" element={<Referrals />} />
             <Route path="settings" element={<Settings />} />
+            <Route path="admin" element={
+              <AdminRoute>
+                <AdminDashboard />
+              </AdminRoute>
+            } />
+            <Route path="admin/users" element={
+              <AdminRoute>
+                <UsersManagement />
+              </AdminRoute>
+            } />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>

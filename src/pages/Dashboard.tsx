@@ -33,13 +33,11 @@ const Dashboard = () => {
 
   const fetchDashboardData = async () => {
     try {
-      // Fetch investments
       const { data: investments } = await supabase
         .from('investments')
         .select('*')
         .eq('user_id', user?.id);
 
-      // Fetch daily commissions
       const { data: commissions } = await supabase
         .from('daily_commissions')
         .select('*')
@@ -47,7 +45,6 @@ const Dashboard = () => {
         .order('created_at', { ascending: false })
         .limit(5);
 
-      // Fetch referrals
       const { data: referrals } = await supabase
         .from('referrals')
         .select('*')
@@ -78,14 +75,14 @@ const Dashboard = () => {
 
   if (loading) {
     return (
-      <div className="space-y-6">
-        <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="space-y-6 p-4 sm:p-6">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Dashboard</h1>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
           {[...Array(4)].map((_, i) => (
             <Card key={i} className="animate-pulse">
-              <CardContent className="p-6">
-                <div className="h-8 bg-gray-200 rounded mb-2"></div>
-                <div className="h-6 bg-gray-200 rounded"></div>
+              <CardContent className="p-4 sm:p-6">
+                <div className="h-6 sm:h-8 bg-gray-200 rounded mb-2"></div>
+                <div className="h-4 sm:h-6 bg-gray-200 rounded"></div>
               </CardContent>
             </Card>
           ))}
@@ -95,28 +92,31 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-600">Welcome back, {user?.user_metadata?.full_name || user?.email}</p>
+    <div className="space-y-6 p-4 sm:p-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Dashboard</h1>
+        <p className="text-sm sm:text-base text-gray-600">
+          Welcome back, {user?.user_metadata?.full_name || user?.email}
+        </p>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+        <Card className="col-span-1">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Investments</CardTitle>
+            <CardTitle className="text-xs sm:text-sm font-medium">Total Investments</CardTitle>
             <Package className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="flex items-center space-x-2">
-              <div className="text-2xl font-bold">
+              <div className="text-lg sm:text-2xl font-bold truncate">
                 {balanceVisible ? formatCurrency(stats.totalInvestments) : '••••••'}
               </div>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setBalanceVisible(!balanceVisible)}
+                className="flex-shrink-0"
               >
                 {balanceVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </Button>
@@ -124,35 +124,35 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="col-span-1">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Earnings</CardTitle>
+            <CardTitle className="text-xs sm:text-sm font-medium">Total Earnings</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">
+            <div className="text-lg sm:text-2xl font-bold text-green-600 truncate">
               {balanceVisible ? formatCurrency(stats.totalEarnings) : '••••••'}
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="col-span-1">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Investments</CardTitle>
+            <CardTitle className="text-xs sm:text-sm font-medium">Active Investments</CardTitle>
             <CreditCard className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.activeInvestments}</div>
+            <div className="text-lg sm:text-2xl font-bold">{stats.activeInvestments}</div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="col-span-1">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Referrals</CardTitle>
+            <CardTitle className="text-xs sm:text-sm font-medium">Referrals</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.totalReferrals}</div>
+            <div className="text-lg sm:text-2xl font-bold">{stats.totalReferrals}</div>
           </CardContent>
         </Card>
       </div>
@@ -160,7 +160,7 @@ const Dashboard = () => {
       {/* Recent Commissions */}
       <Card>
         <CardHeader>
-          <CardTitle>Recent Commissions</CardTitle>
+          <CardTitle className="text-lg sm:text-xl">Recent Commissions</CardTitle>
           <CardDescription>
             Your latest commission payments
           </CardDescription>
@@ -171,14 +171,14 @@ const Dashboard = () => {
           ) : (
             <div className="space-y-3">
               {recentCommissions.map((commission) => (
-                <div key={commission.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                  <div>
-                    <p className="font-medium">Day {commission.day_number} Commission</p>
-                    <p className="text-sm text-gray-600">
+                <div key={commission.id} className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 bg-gray-50 rounded-lg space-y-2 sm:space-y-0">
+                  <div className="flex-1">
+                    <p className="font-medium text-sm sm:text-base">Day {commission.day_number} Commission</p>
+                    <p className="text-xs sm:text-sm text-gray-600">
                       {new Date(commission.commission_date).toLocaleDateString()}
                     </p>
                   </div>
-                  <div className="text-green-600 font-semibold">
+                  <div className="text-green-600 font-semibold text-sm sm:text-base">
                     +{formatCurrency(commission.amount)}
                   </div>
                 </div>
