@@ -27,7 +27,6 @@ const Packages = () => {
   const [packages, setPackages] = useState<Package[]>([]);
   const [loading, setLoading] = useState(true);
   const [investing, setInvesting] = useState<string | null>(null);
-  const [showDepositPrompt, setShowDepositPrompt] = useState(false);
 
   useEffect(() => {
     fetchPackages();
@@ -73,19 +72,32 @@ const Packages = () => {
       return;
     }
 
+    // Check if user has sufficient balance
     if (balance < packageData.price) {
-      setShowDepositPrompt(true);
+      const shortfall = packageData.price - balance;
       toast({
         title: "Insufficient Balance",
-        description: `You need KES ${(packageData.price - balance).toLocaleString()} more to invest in this package`,
+        description: `You need KES ${shortfall.toLocaleString()} more to invest in this package. Please deposit funds first.`,
         variant: "destructive",
       });
+      
+      // Show deposit prompt
+      setTimeout(() => {
+        toast({
+          title: "💡 Tip",
+          description: "Use the Deposit button to add funds to your wallet via M-Pesa",
+        });
+      }, 2000);
+      
       return;
     }
 
     setInvesting(packageData.id);
 
     try {
+      console.log(`Starting investment process for package ${packageData.name}`);
+      console.log(`User balance: KES ${balance}, Package price: KES ${packageData.price}`);
+
       // Create investment record first
       const { data: investment, error: investmentError } = await supabase
         .from('investments')
@@ -104,6 +116,8 @@ const Packages = () => {
         .single();
 
       if (investmentError) throw investmentError;
+
+      console.log('Investment created:', investment.id);
 
       // Create transaction record for the investment
       const { error: transactionError } = await supabase
@@ -128,36 +142,41 @@ const Packages = () => {
 
       if (transactionError) throw transactionError;
 
+      console.log('Investment transaction created');
+
       // Update wallet balance by deducting the investment amount
+      const newBalance = balance - packageData.price;
       const { error: balanceError } = await supabase
         .from('profiles')
         .update({
-          wallet_balance: balance - packageData.price
+          wallet_balance: newBalance
         })
         .eq('id', user.id);
 
       if (balanceError) throw balanceError;
 
+      console.log(`Wallet balance updated: ${balance} -> ${newBalance}`);
+
       // Refresh wallet to show updated balance
       await refreshWallet();
 
       toast({
-        title: "Investment Successful!",
-        description: `You have successfully invested in ${packageData.name}. Daily earnings will start tomorrow.`,
+        title: "🚀 Investment Successful!",
+        description: `You have successfully invested KES ${packageData.price.toLocaleString()} in ${packageData.name}`,
       });
 
       // Show investment details
       setTimeout(() => {
         toast({
-          title: "Investment Active",
-          description: `Daily earning: KES ${packageData.daily_earning.toLocaleString()} for ${packageData.duration_days} days`,
+          title: "📈 Investment Details",
+          description: `Daily earning: KES ${packageData.daily_earning.toLocaleString()} for ${packageData.duration_days} days. Total expected return: KES ${(packageData.daily_earning * packageData.duration_days).toLocaleString()}`,
         });
       }, 2000);
 
       // Navigate to investments page to see the new investment
       setTimeout(() => {
         window.location.href = '/dashboard/investments';
-      }, 3000);
+      }, 4000);
 
     } catch (error: any) {
       console.error('Investment error:', error);
@@ -216,24 +235,22 @@ const Packages = () => {
       </div>
 
       {/* Enhanced Wallet Balance Display */}
-      <Card className="bg-gradient-to-r from-green-50 to-green-100">
+      <Card className="bg-gradient-to-r from-green-50 to-green-100 border-green-200">
         <CardContent className="p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Available Balance</p>
-              <p className="text-2xl font-bold text-green-600">{formatCurrency(balance)}</p>
-              {showDepositPrompt && (
-                <p className="text-sm text-orange-600 mt-1">
-                  💡 Deposit funds to start investing
-                </p>
-              )}
+              <p className="text-sm text-gray-600">💰 Available Balance</p>
+              <p className="text-3xl font-bold text-green-600">{formatCurrency(balance)}</p>
+              <p className="text-sm text-green-700 mt-1">
+                ✅ Ready to invest • Funds available for immediate investment
+              </p>
             </div>
             <Button 
               onClick={() => window.location.href = '/dashboard/wallet'} 
               variant="outline"
-              className="bg-white hover:bg-gray-50"
+              className="bg-white hover:bg-gray-50 border-green-300 text-green-700"
             >
-              💰 Deposit Funds
+              📱 Add Funds via M-Pesa
             </Button>
           </div>
         </CardContent>
@@ -292,20 +309,10 @@ const Packages = () => {
                   </ul>
                 </div>
 
-                <Button
-                  onClick={() => handleInvest(pkg)}
-                  disabled={!canAfford || investing === pkg.id}
-                  className={`w-full ${canAfford ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-400'}`}
-                >
-                  {investing === pkg.id ? 'Processing Investment...' : 
-                   !canAfford ? `Deposit ${formatCurrency(shortfall)} More` : 
-                   '🚀 Invest Now'}
-                </Button>
-
                 {!canAfford && (
                   <div className="bg-orange-50 p-3 rounded-lg border border-orange-200">
-                    <p className="text-xs text-orange-800 text-center">
-                      💡 <strong>Tip:</strong> Deposit {formatCurrency(shortfall)} more to unlock this investment
+                    <p className="text-xs text-orange-800 text-center font-medium">
+                      ⚠️ <strong>Insufficient Balance:</strong> You need {formatCurrency(shortfall)} more
                     </p>
                     <Button 
                       onClick={() => window.location.href = '/dashboard/wallet'}
@@ -313,18 +320,31 @@ const Packages = () => {
                       size="sm"
                       className="w-full mt-2 text-orange-600 border-orange-300 hover:bg-orange-50"
                     >
-                      Quick Deposit
+                      📱 Deposit {formatCurrency(shortfall)} via M-Pesa
                     </Button>
                   </div>
                 )}
 
                 {canAfford && (
-                  <div className="bg-green-50 p-2 rounded text-center">
-                    <p className="text-xs text-green-800">
-                      ✅ Ready to invest
+                  <div className="bg-green-50 p-3 rounded-lg border border-green-200">
+                    <p className="text-xs text-green-800 text-center font-medium">
+                      ✅ <strong>Ready to Invest:</strong> You have sufficient balance
+                    </p>
+                    <p className="text-xs text-green-700 text-center mt-1">
+                      Remaining after investment: {formatCurrency(balance - pkg.price)}
                     </p>
                   </div>
                 )}
+
+                <Button
+                  onClick={() => handleInvest(pkg)}
+                  disabled={!canAfford || investing === pkg.id}
+                  className={`w-full ${canAfford ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-400 cursor-not-allowed'}`}
+                >
+                  {investing === pkg.id ? '⏳ Processing Investment...' : 
+                   !canAfford ? `💰 Deposit ${formatCurrency(shortfall)} First` : 
+                   '🚀 Invest Now'}
+                </Button>
               </CardContent>
             </Card>
           );

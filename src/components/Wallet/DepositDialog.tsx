@@ -7,6 +7,7 @@ import { useWallet } from '@/hooks/useWallet';
 import { formatPhoneNumber } from '@/utils/mpesa';
 import DepositForm from './DepositForm';
 import PaymentStatus from './PaymentStatus';
+import { supabase } from '@/integrations/supabase/client';
 
 interface DepositDialogProps {
   open: boolean;
@@ -43,6 +44,7 @@ const DepositDialog = ({ open, onOpenChange }: DepositDialogProps) => {
       }
 
       const formattedPhone = formatPhoneNumber(formData.phoneNumber);
+      console.log('Formatted phone number:', formattedPhone);
       
       // Create transaction record
       const transaction = await createTransaction({
@@ -55,63 +57,95 @@ const DepositDialog = ({ open, onOpenChange }: DepositDialogProps) => {
 
       setTransactionId(transaction.id);
       setPaymentStep('processing');
+      console.log('Transaction created:', transaction.id);
 
-      // Initiate M-Pesa STK Push
-      const response = await fetch('/api/mpesa-stk-push', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      // Initiate M-Pesa STK Push via Supabase Edge Function
+      const { data, error } = await supabase.functions.invoke('mpesa-stk-push', {
+        body: {
           phoneNumber: formattedPhone,
           amount,
           transactionId: transaction.id,
           userId: user?.id,
-        }),
+        },
       });
 
-      if (!response.ok) {
+      if (error) {
+        console.error('STK Push error:', error);
         throw new Error('Failed to initiate M-Pesa payment');
       }
 
-      const result = await response.json();
-      console.log('M-Pesa STK Push initiated:', result);
+      console.log('M-Pesa STK Push initiated:', data);
 
       // Move to PIN prompt stage
       setPaymentStep('pin_prompt');
       
       toast({
         title: "Payment Request Sent",
-        description: "Check your phone and enter your M-Pesa PIN to complete the payment",
+        description: `Check your phone ${formattedPhone} and enter your M-Pesa PIN to complete the payment`,
       });
 
-      // Simulate payment completion after 15 seconds (realistic PIN entry time)
-      setTimeout(async () => {
-        try {
-          console.log('Simulating payment completion...');
+      // Poll for payment completion
+      const checkPaymentStatus = async () => {
+        let attempts = 0;
+        const maxAttempts = 24; // 2 minutes (5 second intervals)
+        
+        const pollInterval = setInterval(async () => {
+          attempts++;
+          console.log(`Checking payment status... attempt ${attempts}`);
           
-          // In a real implementation, this would be handled by the webhook
-          // For demo purposes, we'll simulate the success
-          setPaymentStep('success');
-          
-          toast({
-            title: "Payment Successful!",
-            description: `KES ${amount.toLocaleString()} has been added to your wallet`,
-          });
-          
-          // Refresh wallet to show updated balance
-          await refreshWallet();
-          
-        } catch (error) {
-          console.error('Payment completion error:', error);
-          setPaymentStep('failed');
-          toast({
-            title: "Payment Failed",
-            description: "There was an issue completing your payment",
-            variant: "destructive",
-          });
-        }
-      }, 15000); // 15 seconds for realistic PIN entry
+          try {
+            const { data: transactionData, error: fetchError } = await supabase
+              .from('transactions')
+              .select('status, completed_at')
+              .eq('id', transaction.id)
+              .single();
+
+            if (fetchError) {
+              console.error('Error fetching transaction:', fetchError);
+              return;
+            }
+
+            console.log('Transaction status:', transactionData.status);
+
+            if (transactionData.status === 'completed') {
+              clearInterval(pollInterval);
+              setPaymentStep('success');
+              
+              toast({
+                title: "Payment Successful!",
+                description: `KES ${amount.toLocaleString()} has been added to your wallet`,
+              });
+              
+              // Refresh wallet to show updated balance
+              await refreshWallet();
+              
+            } else if (transactionData.status === 'failed') {
+              clearInterval(pollInterval);
+              setPaymentStep('failed');
+              
+              toast({
+                title: "Payment Failed",
+                description: "The payment could not be completed",
+                variant: "destructive",
+              });
+            } else if (attempts >= maxAttempts) {
+              clearInterval(pollInterval);
+              setPaymentStep('failed');
+              
+              toast({
+                title: "Payment Timeout",
+                description: "Payment request has expired. Please try again.",
+                variant: "destructive",
+              });
+            }
+          } catch (error) {
+            console.error('Error checking payment status:', error);
+          }
+        }, 5000); // Check every 5 seconds
+      };
+
+      // Start polling for payment status
+      checkPaymentStatus();
 
     } catch (error: any) {
       console.error('Deposit error:', error);

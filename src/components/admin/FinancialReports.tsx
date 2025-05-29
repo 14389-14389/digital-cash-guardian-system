@@ -17,6 +17,19 @@ interface FinancialSummary {
   pendingWithdrawals: number;
 }
 
+interface TransactionWithProfile {
+  id: string;
+  type: string;
+  amount: number;
+  status: string;
+  payment_method: string | null;
+  reference_id: string | null;
+  created_at: string;
+  profiles: {
+    full_name: string | null;
+  } | null;
+}
+
 const FinancialReports = () => {
   const { toast } = useToast();
   const [summary, setSummary] = useState<FinancialSummary>({
@@ -123,24 +136,41 @@ const FinancialReports = () => {
         ? endOfMonth(now) 
         : endOfMonth(subMonths(now, 1));
 
-      // Get detailed transaction data
-      const { data: transactions } = await supabase
+      // Get detailed transaction data with proper join
+      const { data: transactions, error } = await supabase
         .from('transactions')
         .select(`
-          *,
-          profiles:user_id (full_name, phone)
+          id,
+          type,
+          amount,
+          status,
+          payment_method,
+          reference_id,
+          created_at,
+          profiles!inner(full_name)
         `)
         .gte('created_at', startDate.toISOString())
         .lte('created_at', endDate.toISOString())
         .order('created_at', { ascending: false });
 
-      if (!transactions) return;
+      if (error) {
+        console.error('Error fetching transactions:', error);
+        throw error;
+      }
+
+      if (!transactions || transactions.length === 0) {
+        toast({
+          title: "No Data",
+          description: "No transactions found for the selected period",
+        });
+        return;
+      }
 
       // Create CSV content
       const headers = ['Date', 'User', 'Type', 'Amount', 'Status', 'Payment Method', 'Reference'];
       const csvContent = [
         headers.join(','),
-        ...transactions.map(t => [
+        ...transactions.map((t: TransactionWithProfile) => [
           format(new Date(t.created_at), 'yyyy-MM-dd HH:mm'),
           t.profiles?.full_name || 'Unknown',
           t.type,
