@@ -8,6 +8,7 @@ interface Profile {
   full_name: string;
   role: 'admin' | 'client';
   wallet_balance: number;
+  phone?: string;
 }
 
 interface AuthContextType {
@@ -34,13 +35,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const fetchProfile = async (userId: string) => {
     try {
+      console.log('Fetching profile for user:', userId);
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching profile:', error);
+        return;
+      }
+      
+      console.log('Profile fetched:', data);
       setProfile(data);
     } catch (error) {
       console.error('Error fetching profile:', error);
@@ -51,6 +58,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('Auth state changed:', event, session?.user?.email);
         setSession(session);
         setUser(session?.user ?? null);
         
@@ -66,6 +74,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     // Get initial session
     supabase.auth.getSession().then(async ({ data: { session } }) => {
+      console.log('Initial session:', session?.user?.email);
       setSession(session);
       setUser(session?.user ?? null);
       
@@ -79,8 +88,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Check if user is admin based on the new email
+  // Check if user is admin based on profile role or email
   const isAdmin = profile?.role === 'admin' || user?.email === 'kevinkisaa@gmail.com';
+
+  console.log('Auth state:', { 
+    userEmail: user?.email, 
+    profileRole: profile?.role, 
+    isAdmin 
+  });
 
   return (
     <AuthContext.Provider value={{ user, session, profile, loading, isAdmin }}>

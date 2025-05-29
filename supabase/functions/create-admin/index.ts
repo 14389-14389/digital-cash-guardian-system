@@ -31,21 +31,34 @@ serve(async (req) => {
       })
     }
 
-    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey)
+    const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    })
 
-    // Check if admin already exists
-    console.log('Checking for existing admin user...')
-    const { data: existingUser, error: getUserError } = await supabaseAdmin.auth.admin.getUserByEmail('kevinkisaa@gmail.com')
+    const adminEmail = 'kevinkisaa@gmail.com'
+    const adminPassword = 'Alfaromeo001@'
+    const adminPhone = '0743455893'
+
+    // Check if admin already exists in profiles table
+    console.log('Checking for existing admin profile...')
+    const { data: existingProfile, error: profileCheckError } = await supabaseAdmin
+      .from('profiles')
+      .select('id, full_name')
+      .eq('role', 'admin')
+      .single()
     
-    if (existingUser?.user) {
-      console.log('Admin user already exists')
+    if (existingProfile && !profileCheckError) {
+      console.log('Admin profile already exists')
       return new Response(JSON.stringify({ 
         success: true,
         message: 'Admin user already exists',
         credentials: {
-          email: 'kevinkisaa@gmail.com',
-          password: 'Alfaromeo001@',
-          mpesa: '0743455893'
+          email: adminEmail,
+          password: adminPassword,
+          mpesa: adminPhone
         }
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -53,15 +66,15 @@ serve(async (req) => {
       })
     }
 
-    // Create new admin user
+    // Create new admin user using the correct method
     console.log('Creating new admin user...')
     const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
-      email: 'kevinkisaa@gmail.com',
-      password: 'Alfaromeo001@',
+      email: adminEmail,
+      password: adminPassword,
       email_confirm: true,
       user_metadata: {
         full_name: 'Kevin Kisaa',
-        phone: '0743455893',
+        phone: adminPhone,
         role: 'admin'
       }
     })
@@ -90,14 +103,14 @@ serve(async (req) => {
 
     console.log('Admin user created successfully:', newUser.user.id)
 
-    // Create profile for admin user
+    // Create or update profile for admin user
     console.log('Creating admin profile...')
     const { error: profileError } = await supabaseAdmin
       .from('profiles')
       .upsert({ 
         id: newUser.user.id,
         full_name: 'Kevin Kisaa',
-        phone: '0743455893',
+        phone: adminPhone,
         role: 'admin',
         wallet_balance: 0
       }, {
@@ -121,9 +134,9 @@ serve(async (req) => {
       success: true,
       message: 'Admin user created successfully',
       credentials: {
-        email: 'kevinkisaa@gmail.com',
-        password: 'Alfaromeo001@',
-        mpesa: '0743455893'
+        email: adminEmail,
+        password: adminPassword,
+        mpesa: adminPhone
       },
       user: {
         id: newUser.user.id,

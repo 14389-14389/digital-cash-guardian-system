@@ -2,13 +2,18 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Shield, Key } from 'lucide-react';
+import { Loader2, Shield, Key, CheckCircle, AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 
 const CreateAdminButton = () => {
   const [loading, setLoading] = useState(false);
   const [adminCreated, setAdminCreated] = useState(false);
+  const [credentials, setCredentials] = useState<{
+    email: string;
+    password: string;
+    mpesa: string;
+  } | null>(null);
   const { toast } = useToast();
 
   const createAdmin = async () => {
@@ -30,9 +35,10 @@ const CreateAdminButton = () => {
 
       if (data && data.success) {
         setAdminCreated(true);
+        setCredentials(data.credentials);
         toast({
           title: "Admin Created Successfully!",
-          description: "You can now log in with the admin credentials.",
+          description: "Admin credentials have been generated and saved to the database.",
         });
       } else {
         throw new Error(data?.error || 'Failed to create admin');
@@ -47,6 +53,10 @@ const CreateAdminButton = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const goToLogin = () => {
+    window.location.href = '/auth';
   };
 
   return (
@@ -80,20 +90,45 @@ const CreateAdminButton = () => {
             )}
           </Button>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-4">
             <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-              <h3 className="font-semibold text-green-800 mb-2">✅ Admin Created Successfully!</h3>
-              <div className="space-y-1 text-sm text-green-700">
-                <p><strong>Email:</strong> kevinkisaa@gmail.com</p>
-                <p><strong>Password:</strong> Alfaromeo001@</p>
-                <p><strong>M-Pesa Account:</strong> 0743455893</p>
+              <div className="flex items-center mb-2">
+                <CheckCircle className="h-5 w-5 text-green-600 mr-2" />
+                <h3 className="font-semibold text-green-800">Admin Created Successfully!</h3>
+              </div>
+              {credentials && (
+                <div className="space-y-2 text-sm text-green-700">
+                  <div className="flex justify-between">
+                    <span className="font-medium">Email:</span>
+                    <span className="font-mono">{credentials.email}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-medium">Password:</span>
+                    <span className="font-mono">{credentials.password}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-medium">M-Pesa:</span>
+                    <span className="font-mono">{credentials.mpesa}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+              <div className="flex items-start">
+                <AlertCircle className="h-4 w-4 text-blue-600 mr-2 mt-0.5" />
+                <div className="text-sm text-blue-700">
+                  <p className="font-medium mb-1">Important:</p>
+                  <p>Save these credentials securely. You can now use them to log in as an administrator.</p>
+                </div>
               </div>
             </div>
+            
             <Button 
-              onClick={() => window.location.href = '/auth'}
+              onClick={goToLogin}
               className="w-full"
             >
-              Go to Login
+              Go to Login Page
             </Button>
           </div>
         )}
