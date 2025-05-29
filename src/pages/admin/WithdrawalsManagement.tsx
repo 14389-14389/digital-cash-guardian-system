@@ -20,10 +20,8 @@ interface Withdrawal {
   processed_by: string | null;
   notes: string | null;
   phone: string;
-  profiles: {
-    full_name: string | null;
-    wallet_balance: number;
-  } | null;
+  full_name: string | null;
+  wallet_balance: number;
 }
 
 const WithdrawalsManagement = () => {
@@ -39,25 +37,44 @@ const WithdrawalsManagement = () => {
 
   const fetchWithdrawals = async () => {
     try {
-      const { data, error } = await supabase
+      // First get all withdrawals
+      const { data: withdrawalsData, error: withdrawalsError } = await supabase
         .from('withdrawals')
-        .select(`
-          id,
-          user_id,
-          amount,
-          status,
-          requested_at,
-          processed_at,
-          processed_by,
-          notes,
-          phone,
-          profiles(full_name, wallet_balance)
-        `)
+        .select('*')
         .order('requested_at', { ascending: false });
 
-      if (error) throw error;
+      if (withdrawalsError) throw withdrawalsError;
 
-      setWithdrawals(data || []);
+      if (!withdrawalsData || withdrawalsData.length === 0) {
+        setWithdrawals([]);
+        return;
+      }
+
+      // Get unique user IDs from withdrawals
+      const userIds = [...new Set(withdrawalsData.map(w => w.user_id))];
+
+      // Get profiles for these users
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, full_name, wallet_balance')
+        .in('id', userIds);
+
+      if (profilesError) throw profilesError;
+
+      // Create a map of profiles for quick lookup
+      const profilesMap = new Map((profilesData || []).map(p => [p.id, p]));
+
+      // Combine withdrawal data with profile data
+      const withdrawalsWithProfiles: Withdrawal[] = withdrawalsData.map(w => {
+        const profile = profilesMap.get(w.user_id);
+        return {
+          ...w,
+          full_name: profile?.full_name || null,
+          wallet_balance: profile?.wallet_balance || 0
+        };
+      });
+
+      setWithdrawals(withdrawalsWithProfiles);
     } catch (error) {
       console.error('Error fetching withdrawals:', error);
       toast({
@@ -112,7 +129,7 @@ const WithdrawalsManagement = () => {
         const { error: balanceError } = await supabase
           .from('profiles')
           .update({
-            wallet_balance: (withdrawal.profiles?.wallet_balance || 0) - withdrawal.amount
+            wallet_balance: withdrawal.wallet_balance - withdrawal.amount
           })
           .eq('id', withdrawal.user_id);
 
@@ -212,7 +229,7 @@ const WithdrawalsManagement = () => {
                     <User className="h-5 w-5 text-gray-500" />
                     <div>
                       <CardTitle className="text-lg">
-                        {withdrawal.profiles?.full_name || 'Unknown User'}
+                        {withdrawal.full_name || 'Unknown User'}
                       </CardTitle>
                       <CardDescription>
                         Requested on {format(new Date(withdrawal.requested_at), 'PPP')}
@@ -237,7 +254,7 @@ const WithdrawalsManagement = () => {
                   <div>
                     <p className="text-sm text-gray-600">Current Balance</p>
                     <p className="text-lg font-semibold text-blue-600">
-                      {formatCurrency(withdrawal.profiles?.wallet_balance || 0)}
+                      {formatCurrency(withdrawal.wallet_balance)}
                     </p>
                   </div>
                 </div>

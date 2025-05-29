@@ -25,9 +25,8 @@ interface TransactionWithProfile {
   payment_method: string | null;
   reference_id: string | null;
   created_at: string;
-  profiles: {
-    full_name: string | null;
-  } | null;
+  user_id: string;
+  full_name: string | null;
 }
 
 const FinancialReports = () => {
@@ -136,26 +135,17 @@ const FinancialReports = () => {
         ? endOfMonth(now) 
         : endOfMonth(subMonths(now, 1));
 
-      // Get detailed transaction data with proper join
-      const { data: transactions, error } = await supabase
+      // Get transactions first
+      const { data: transactions, error: transactionsError } = await supabase
         .from('transactions')
-        .select(`
-          id,
-          type,
-          amount,
-          status,
-          payment_method,
-          reference_id,
-          created_at,
-          profiles(full_name)
-        `)
+        .select('id, type, amount, status, payment_method, reference_id, created_at, user_id')
         .gte('created_at', startDate.toISOString())
         .lte('created_at', endDate.toISOString())
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching transactions:', error);
-        throw error;
+      if (transactionsError) {
+        console.error('Error fetching transactions:', transactionsError);
+        throw transactionsError;
       }
 
       if (!transactions || transactions.length === 0) {
@@ -166,13 +156,34 @@ const FinancialReports = () => {
         return;
       }
 
+      // Get user profiles for the users in these transactions
+      const userIds = [...new Set(transactions.map(t => t.user_id))];
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', userIds);
+
+      if (profilesError) {
+        console.error('Error fetching profiles:', profilesError);
+        throw profilesError;
+      }
+
+      // Create a map of user profiles for quick lookup
+      const profilesMap = new Map((profiles || []).map(p => [p.id, p.full_name]));
+
+      // Combine transaction data with profile data
+      const transactionsWithProfiles: TransactionWithProfile[] = transactions.map(t => ({
+        ...t,
+        full_name: profilesMap.get(t.user_id) || 'Unknown'
+      }));
+
       // Create CSV content
       const headers = ['Date', 'User', 'Type', 'Amount', 'Status', 'Payment Method', 'Reference'];
       const csvContent = [
         headers.join(','),
-        ...transactions.map((t: TransactionWithProfile) => [
+        ...transactionsWithProfiles.map((t: TransactionWithProfile) => [
           format(new Date(t.created_at), 'yyyy-MM-dd HH:mm'),
-          t.profiles?.full_name || 'Unknown',
+          t.full_name || 'Unknown',
           t.type,
           t.amount,
           t.status,
