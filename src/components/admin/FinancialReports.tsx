@@ -147,7 +147,7 @@ const FinancialReports = () => {
           payment_method,
           reference_id,
           created_at,
-          profiles!inner(full_name)
+          profiles(full_name)
         `)
         .gte('created_at', startDate.toISOString())
         .lte('created_at', endDate.toISOString())

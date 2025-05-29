@@ -51,7 +51,7 @@ const WithdrawalsManagement = () => {
           processed_by,
           notes,
           phone,
-          profiles!inner(full_name, wallet_balance)
+          profiles(full_name, wallet_balance)
         `)
         .order('requested_at', { ascending: false });
 
