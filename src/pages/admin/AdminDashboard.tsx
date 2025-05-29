@@ -7,6 +7,7 @@ import AdminSystemStatus from '@/components/admin/AdminSystemStatus';
 import AdminAccessDenied from '@/components/admin/AdminAccessDenied';
 import AdminLoadingState from '@/components/admin/AdminLoadingState';
 import AdminErrorState from '@/components/admin/AdminErrorState';
+import FinancialReports from '@/components/admin/FinancialReports';
 
 const AdminDashboard = () => {
   const { isAdmin, user, profile, loading: authLoading } = useAuth();
@@ -44,6 +45,8 @@ const AdminDashboard = () => {
         <AdminQuickActions />
         <AdminSystemStatus />
       </div>
+
+      <FinancialReports />
     </div>
   );
 };

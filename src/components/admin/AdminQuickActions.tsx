@@ -17,6 +17,13 @@ const AdminQuickActions = () => {
           <div className="text-sm text-gray-600">View and manage user accounts</div>
         </button>
         <button 
+          onClick={() => window.location.href = '/dashboard/admin/withdrawals'}
+          className="w-full text-left p-3 hover:bg-gray-50 rounded-lg border"
+        >
+          <div className="font-medium">Manage Withdrawals</div>
+          <div className="text-sm text-gray-600">Approve and reject withdrawal requests</div>
+        </button>
+        <button 
           onClick={() => window.location.href = '/dashboard/admin/packages'}
           className="w-full text-left p-3 hover:bg-gray-50 rounded-lg border"
         >

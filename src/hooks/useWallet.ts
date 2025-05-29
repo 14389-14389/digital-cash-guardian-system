@@ -35,29 +35,45 @@ export const useWallet = () => {
   useEffect(() => {
     if (user) {
       fetchWalletData();
+    } else {
+      setWalletData({
+        balance: 0,
+        transactions: [],
+        loading: false,
+      });
     }
   }, [user]);
 
   const fetchWalletData = async () => {
+    if (!user) return;
+    
     try {
+      setWalletData(prev => ({ ...prev, loading: true }));
+      
       // Fetch user profile with wallet balance
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('wallet_balance')
-        .eq('id', user?.id)
+        .eq('id', user.id)
         .single();
 
-      if (profileError) throw profileError;
+      if (profileError) {
+        console.error('Profile error:', profileError);
+        throw profileError;
+      }
 
       // Fetch recent transactions
       const { data: transactions, error: transactionsError } = await supabase
         .from('transactions')
         .select('*')
-        .eq('user_id', user?.id)
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(50);
 
-      if (transactionsError) throw transactionsError;
+      if (transactionsError) {
+        console.error('Transactions error:', transactionsError);
+        throw transactionsError;
+      }
 
       setWalletData({
         balance: profile?.wallet_balance || 0,
@@ -82,11 +98,13 @@ export const useWallet = () => {
     phone_number?: string;
     description?: string;
   }) => {
+    if (!user) throw new Error('User not authenticated');
+    
     try {
       const { data, error } = await supabase
         .from('transactions')
         .insert({
-          user_id: user?.id,
+          user_id: user.id,
           ...transactionData,
         })
         .select()
@@ -94,8 +112,8 @@ export const useWallet = () => {
 
       if (error) throw error;
 
-      // Refresh wallet data
-      fetchWalletData();
+      // Refresh wallet data after creating transaction
+      await fetchWalletData();
       
       return data;
     } catch (error: any) {

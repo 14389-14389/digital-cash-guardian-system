@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -17,6 +16,7 @@ import NotFound from "./pages/NotFound";
 import Wallet from "./pages/Wallet";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import UsersManagement from "./pages/admin/UsersManagement";
+import WithdrawalsManagement from "./pages/admin/WithdrawalsManagement";
 
 const queryClient = new QueryClient();
 
@@ -111,6 +111,11 @@ const App = () => (
             <Route path="admin/users" element={
               <AdminRoute>
                 <UsersManagement />
+              </AdminRoute>
+            } />
+            <Route path="admin/withdrawals" element={
+              <AdminRoute>
+                <WithdrawalsManagement />
               </AdminRoute>
             } />
           </Route>
