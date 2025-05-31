@@ -2,7 +2,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Wallet, Plus, ArrowUpRight } from 'lucide-react';
-import { formatCurrency } from '@/utils/pesapal';
+import { formatCurrency } from '@/utils/cashtele';
 
 interface WalletCardProps {
   balance: number;
@@ -12,7 +12,7 @@ interface WalletCardProps {
 
 const WalletCard = ({ balance, onDeposit, onWithdraw }: WalletCardProps) => {
   return (
-    <Card className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
+    <Card className="bg-gradient-to-r from-green-600 to-blue-600 text-white">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium opacity-90">Wallet Balance</CardTitle>
         <Wallet className="h-4 w-4 opacity-90" />

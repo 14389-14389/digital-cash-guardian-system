@@ -1,9 +1,8 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { formatDistanceToNow } from 'date-fns';
 import { ArrowUpRight, ArrowDownLeft, TrendingUp, Gift, Package } from 'lucide-react';
-import { formatCurrency } from '@/utils/pesapal';
+import { formatCurrency } from '@/utils/cashtele';
 
 interface Transaction {
   id: string;
@@ -74,7 +73,7 @@ const TransactionList = ({ transactions }: TransactionListProps) => {
       </CardHeader>
       <CardContent className="space-y-4">
         {transactions.map((transaction) => (
-          <div key={transaction.id} className="flex items-center justify-between p-3 border rounded-lg">
+          <div key={transaction.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 transition-colors">
             <div className="flex items-center space-x-3">
               {getTransactionIcon(transaction.type)}
               <div>
@@ -86,7 +85,7 @@ const TransactionList = ({ transactions }: TransactionListProps) => {
                 </p>
                 {transaction.payment_method && (
                   <p className="text-xs text-gray-500 capitalize">
-                    via {transaction.payment_method.replace('_', ' ')}
+                    via {transaction.payment_method === 'cashtele' ? 'Cashtele M-Pesa' : transaction.payment_method.replace('_', ' ')}
                   </p>
                 )}
               </div>

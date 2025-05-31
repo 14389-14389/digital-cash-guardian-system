@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { useWallet } from '@/hooks/useWallet';
-import { formatPhoneNumber } from '@/utils/mpesa';
+import { formatPhoneNumber, validatePhoneNumber } from '@/utils/cashtele';
 import DepositForm from './DepositForm';
 import PaymentStatus from './PaymentStatus';
 import { supabase } from '@/integrations/supabase/client';
@@ -43,6 +43,16 @@ const DepositDialog = ({ open, onOpenChange }: DepositDialogProps) => {
         return;
       }
 
+      if (!validatePhoneNumber(formData.phoneNumber)) {
+        toast({
+          title: "Invalid Phone Number",
+          description: "Please enter a valid Kenyan phone number",
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
+
       const formattedPhone = formatPhoneNumber(formData.phoneNumber);
       console.log('Formatted phone number:', formattedPhone);
       
@@ -50,17 +60,17 @@ const DepositDialog = ({ open, onOpenChange }: DepositDialogProps) => {
       const transaction = await createTransaction({
         type: 'deposit',
         amount,
-        payment_method: 'mpesa',
+        payment_method: 'cashtele',
         phone_number: formattedPhone,
-        description: `M-Pesa deposit of KES ${amount.toLocaleString()}`,
+        description: `Cashtele deposit of KES ${amount.toLocaleString()}`,
       });
 
       setTransactionId(transaction.id);
       setPaymentStep('processing');
       console.log('Transaction created:', transaction.id);
 
-      // Initiate M-Pesa STK Push via Supabase Edge Function
-      const { data, error } = await supabase.functions.invoke('mpesa-stk-push', {
+      // Initiate Cashtele payment via Supabase Edge Function
+      const { data, error } = await supabase.functions.invoke('cashtele-payment', {
         body: {
           phoneNumber: formattedPhone,
           amount,
@@ -70,11 +80,11 @@ const DepositDialog = ({ open, onOpenChange }: DepositDialogProps) => {
       });
 
       if (error) {
-        console.error('STK Push error:', error);
-        throw new Error('Failed to initiate M-Pesa payment');
+        console.error('Cashtele payment error:', error);
+        throw new Error('Failed to initiate Cashtele payment');
       }
 
-      console.log('M-Pesa STK Push initiated:', data);
+      console.log('Cashtele payment initiated:', data);
 
       // Move to PIN prompt stage
       setPaymentStep('pin_prompt');
@@ -84,10 +94,10 @@ const DepositDialog = ({ open, onOpenChange }: DepositDialogProps) => {
         description: `Check your phone ${formattedPhone} and enter your M-Pesa PIN to complete the payment`,
       });
 
-      // Poll for payment completion
+      // Poll for payment completion with faster intervals
       const checkPaymentStatus = async () => {
         let attempts = 0;
-        const maxAttempts = 24; // 2 minutes (5 second intervals)
+        const maxAttempts = 20; // 1.5 minutes (4.5 second intervals)
         
         const pollInterval = setInterval(async () => {
           attempts++;
@@ -116,7 +126,6 @@ const DepositDialog = ({ open, onOpenChange }: DepositDialogProps) => {
                 description: `KES ${amount.toLocaleString()} has been added to your wallet`,
               });
               
-              // Refresh wallet to show updated balance
               await refreshWallet();
               
             } else if (transactionData.status === 'failed') {
@@ -141,10 +150,9 @@ const DepositDialog = ({ open, onOpenChange }: DepositDialogProps) => {
           } catch (error) {
             console.error('Error checking payment status:', error);
           }
-        }, 5000); // Check every 5 seconds
+        }, 4500); // Check every 4.5 seconds for faster response
       };
 
-      // Start polling for payment status
       checkPaymentStatus();
 
     } catch (error: any) {
@@ -168,7 +176,6 @@ const DepositDialog = ({ open, onOpenChange }: DepositDialogProps) => {
   };
 
   const handleSuccess = () => {
-    // Navigate to packages page after successful deposit
     window.location.href = '/dashboard/packages';
     onOpenChange(false);
   };
@@ -186,12 +193,12 @@ const DepositDialog = ({ open, onOpenChange }: DepositDialogProps) => {
 
   const getDialogDescription = () => {
     switch (paymentStep) {
-      case 'form': return 'Add money to your wallet using M-Pesa';
-      case 'processing': return 'Initiating M-Pesa STK Push...';
+      case 'form': return 'Add money to your wallet using Cashtele powered M-Pesa';
+      case 'processing': return 'Initiating secure payment via Cashtele...';
       case 'pin_prompt': return 'Complete the payment on your mobile device';
       case 'success': return 'Your wallet has been updated successfully';
       case 'failed': return 'Payment could not be completed';
-      default: return 'Add money to your wallet using M-Pesa';
+      default: return 'Add money to your wallet using Cashtele';
     }
   };
 

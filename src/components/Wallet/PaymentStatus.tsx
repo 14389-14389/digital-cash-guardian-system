@@ -1,6 +1,6 @@
 
 import { Button } from '@/components/ui/button';
-import { Loader2, Smartphone, CheckCircle, AlertCircle } from 'lucide-react';
+import { Loader2, Smartphone, CheckCircle, AlertCircle, Shield } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 interface PaymentStatusProps {
@@ -12,7 +12,7 @@ interface PaymentStatusProps {
 }
 
 const PaymentStatus = ({ paymentStep, phoneNumber, amount, onCancel, onSuccess }: PaymentStatusProps) => {
-  const [countdown, setCountdown] = useState(120); // 2 minutes timeout
+  const [countdown, setCountdown] = useState(90); // 1.5 minutes timeout (faster)
 
   useEffect(() => {
     if (paymentStep === 'pin_prompt') {
@@ -41,12 +41,15 @@ const PaymentStatus = ({ paymentStep, phoneNumber, amount, onCancel, onSuccess }
       {paymentStep === 'processing' && (
         <>
           <div className="flex justify-center">
-            <Loader2 className="h-16 w-16 animate-spin text-blue-600" />
+            <div className="relative">
+              <Loader2 className="h-16 w-16 animate-spin text-green-600" />
+              <Shield className="h-6 w-6 absolute bottom-0 right-0 text-green-600 bg-white rounded-full p-1" />
+            </div>
           </div>
           <div className="space-y-2">
-            <h3 className="text-lg font-semibold">Initiating Payment</h3>
+            <h3 className="text-lg font-semibold text-green-600">Initiating Secure Payment</h3>
             <p className="text-sm text-gray-600">
-              Sending payment request to Safaricom...
+              Connecting to Cashtele payment gateway...
             </p>
           </div>
         </>
@@ -63,8 +66,12 @@ const PaymentStatus = ({ paymentStep, phoneNumber, amount, onCancel, onSuccess }
           <div className="space-y-3">
             <h3 className="text-lg font-semibold text-green-600">Check Your Phone!</h3>
             <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+              <div className="flex items-center justify-center space-x-2 mb-2">
+                <Shield className="h-4 w-4 text-green-600" />
+                <span className="text-sm font-medium text-green-800">Cashtele Secure Payment</span>
+              </div>
               <p className="text-sm text-green-800 font-medium">
-                📱 M-Pesa request sent to <strong>{phoneNumber}</strong>
+                📱 Payment request sent to <strong>{phoneNumber}</strong>
               </p>
               <p className="text-sm text-green-700 mt-1">
                 Enter your M-Pesa PIN on your phone to complete payment
@@ -79,7 +86,7 @@ const PaymentStatus = ({ paymentStep, phoneNumber, amount, onCancel, onSuccess }
               </p>
             </div>
             <div className="text-sm text-gray-600">
-              ⏱️ Time remaining: <span className="font-mono font-bold">{formatTime(countdown)}</span>
+              ⏱️ Time remaining: <span className="font-mono font-bold text-green-600">{formatTime(countdown)}</span>
             </div>
             {countdown === 0 && (
               <div className="bg-red-50 p-3 rounded-lg border border-red-200">
@@ -93,7 +100,10 @@ const PaymentStatus = ({ paymentStep, phoneNumber, amount, onCancel, onSuccess }
       {paymentStep === 'success' && (
         <>
           <div className="flex justify-center">
-            <CheckCircle className="h-16 w-16 text-green-600" />
+            <div className="relative">
+              <CheckCircle className="h-16 w-16 text-green-600" />
+              <Shield className="h-6 w-6 absolute bottom-0 right-0 text-green-600 bg-white rounded-full p-1" />
+            </div>
           </div>
           <div className="space-y-2">
             <h3 className="text-lg font-semibold text-green-600">Payment Successful!</h3>
@@ -101,8 +111,12 @@ const PaymentStatus = ({ paymentStep, phoneNumber, amount, onCancel, onSuccess }
               KES {parseInt(amount || '0').toLocaleString()} has been added to your wallet
             </p>
             <div className="bg-green-50 p-3 rounded-lg">
+              <div className="flex items-center justify-center space-x-2 mb-1">
+                <Shield className="h-4 w-4 text-green-600" />
+                <span className="text-sm font-medium text-green-800">Cashtele Payment Confirmed</span>
+              </div>
               <p className="text-sm text-green-800">
-                ✅ Payment confirmed from {phoneNumber}
+                ✅ Payment verified from {phoneNumber}
               </p>
             </div>
           </div>
