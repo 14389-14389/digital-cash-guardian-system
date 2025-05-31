@@ -1,100 +1,95 @@
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { formatCurrency } from '@/utils/pesapal';
-import { User } from 'lucide-react';
-import { format } from 'date-fns';
+import { Card, CardContent } from '@/components/ui/card';
+import { formatCurrency } from '@/utils/cashtele';
+import { Badge } from '@/components/ui/badge';
+import { User, Calendar, Phone } from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
 import WithdrawalStatusBadge from './WithdrawalStatusBadge';
 import WithdrawalActions from './WithdrawalActions';
 
-interface Withdrawal {
-  id: string;
-  user_id: string;
-  amount: number;
-  status: 'pending' | 'approved' | 'rejected' | 'completed';
-  requested_at: string;
-  processed_at: string | null;
-  processed_by: string | null;
-  notes: string | null;
-  phone: string;
-  full_name: string | null;
-  wallet_balance: number;
-}
-
 interface WithdrawalCardProps {
-  withdrawal: Withdrawal;
-  notes: string;
-  onNotesChange: (value: string) => void;
-  onProcessWithdrawal: (action: 'approve' | 'reject') => void;
-  processing: boolean;
+  withdrawal: {
+    id: string;
+    amount: number;
+    phone_number?: string;
+    status: string;
+    created_at: string;
+    processed_at?: string;
+    admin_notes?: string;
+    profiles: {
+      full_name?: string;
+      email: string;
+    };
+  };
+  onApprove: (id: string) => void;
+  onReject: (id: string, reason: string) => void;
 }
 
-const WithdrawalCard = ({ 
-  withdrawal, 
-  notes, 
-  onNotesChange, 
-  onProcessWithdrawal, 
-  processing 
-}: WithdrawalCardProps) => {
+const WithdrawalCard = ({ withdrawal, onApprove, onReject }: WithdrawalCardProps) => {
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
+    <Card className="hover:shadow-md transition-shadow">
+      <CardContent className="p-6">
+        <div className="flex items-start justify-between mb-4">
           <div className="flex items-center space-x-3">
-            <User className="h-5 w-5 text-gray-500" />
+            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+              <User className="h-5 w-5 text-blue-600" />
+            </div>
             <div>
-              <CardTitle className="text-lg">
-                {withdrawal.full_name || 'Unknown User'}
-              </CardTitle>
-              <CardDescription>
-                Requested on {format(new Date(withdrawal.requested_at), 'PPP')}
-              </CardDescription>
+              <h3 className="font-semibold text-lg">
+                {withdrawal.profiles.full_name || 'No Name'}
+              </h3>
+              <p className="text-sm text-gray-600">{withdrawal.profiles.email}</p>
             </div>
           </div>
           <WithdrawalStatusBadge status={withdrawal.status} />
         </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <p className="text-sm text-gray-600">Amount</p>
-            <p className="text-lg font-semibold text-green-600">
-              {formatCurrency(withdrawal.amount)}
-            </p>
-          </div>
-          <div>
-            <p className="text-sm text-gray-600">Phone Number</p>
-            <p className="text-lg font-semibold">{withdrawal.phone}</p>
-          </div>
-          <div>
-            <p className="text-sm text-gray-600">Current Balance</p>
-            <p className="text-lg font-semibold text-blue-600">
-              {formatCurrency(withdrawal.wallet_balance)}
-            </p>
-          </div>
-        </div>
 
-        {withdrawal.notes && (
-          <div className="bg-gray-50 p-3 rounded-lg">
-            <p className="text-sm text-gray-600">Admin Notes:</p>
-            <p className="text-sm">{withdrawal.notes}</p>
+        <div className="space-y-3 mb-4">
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-gray-600">Amount</span>
+            <span className="font-semibold text-lg text-red-600">
+              -{formatCurrency(withdrawal.amount)}
+            </span>
           </div>
-        )}
+
+          {withdrawal.phone_number && (
+            <div className="flex items-center space-x-2">
+              <Phone className="h-4 w-4 text-gray-500" />
+              <span className="text-sm text-gray-600">{withdrawal.phone_number}</span>
+            </div>
+          )}
+
+          <div className="flex items-center space-x-2">
+            <Calendar className="h-4 w-4 text-gray-500" />
+            <span className="text-sm text-gray-600">
+              Requested {formatDistanceToNow(new Date(withdrawal.created_at), { addSuffix: true })}
+            </span>
+          </div>
+
+          {withdrawal.processed_at && (
+            <div className="flex items-center space-x-2">
+              <Calendar className="h-4 w-4 text-gray-500" />
+              <span className="text-sm text-gray-600">
+                Processed {formatDistanceToNow(new Date(withdrawal.processed_at), { addSuffix: true })}
+              </span>
+            </div>
+          )}
+
+          {withdrawal.admin_notes && (
+            <div className="bg-gray-50 p-3 rounded-lg">
+              <p className="text-sm text-gray-700">
+                <strong>Admin Notes:</strong> {withdrawal.admin_notes}
+              </p>
+            </div>
+          )}
+        </div>
 
         {withdrawal.status === 'pending' && (
           <WithdrawalActions
             withdrawalId={withdrawal.id}
-            notes={notes}
-            onNotesChange={onNotesChange}
-            onApprove={() => onProcessWithdrawal('approve')}
-            onReject={() => onProcessWithdrawal('reject')}
-            processing={processing}
+            onApprove={onApprove}
+            onReject={onReject}
           />
-        )}
-
-        {withdrawal.processed_at && (
-          <div className="text-sm text-gray-600">
-            Processed on {format(new Date(withdrawal.processed_at), 'PPP')}
-          </div>
         )}
       </CardContent>
     </Card>

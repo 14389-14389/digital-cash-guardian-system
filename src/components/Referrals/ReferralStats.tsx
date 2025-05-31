@@ -1,7 +1,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, DollarSign } from 'lucide-react';
-import { formatCurrency } from '@/utils/pesapal';
+import { formatCurrency } from '@/utils/cashtele';
 
 interface ReferralStatsProps {
   totalReferrals: number;
@@ -18,6 +18,7 @@ const ReferralStats = ({ totalReferrals, totalEarned }: ReferralStatsProps) => {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">{totalReferrals}</div>
+          <p className="text-xs text-muted-foreground">Active referrals</p>
         </CardContent>
       </Card>
 
@@ -28,6 +29,7 @@ const ReferralStats = ({ totalReferrals, totalEarned }: ReferralStatsProps) => {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold text-green-600">{formatCurrency(totalEarned)}</div>
+          <p className="text-xs text-muted-foreground">From referral bonuses</p>
         </CardContent>
       </Card>
     </div>

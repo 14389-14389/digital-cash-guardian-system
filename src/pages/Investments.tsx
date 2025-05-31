@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { formatDistanceToNow } from 'date-fns';
 import { TrendingUp, Package, DollarSign, Calendar, Target } from 'lucide-react';
-import { formatCurrency } from '@/utils/pesapal';
+import { formatCurrency } from '@/utils/cashtele';
 
 const Investments = () => {
   const { investments, stats, loading } = useInvestments();
