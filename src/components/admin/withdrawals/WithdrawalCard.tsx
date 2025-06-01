@@ -1,7 +1,6 @@
 
 import { Card, CardContent } from '@/components/ui/card';
 import { formatCurrency } from '@/utils/cashtele';
-import { Badge } from '@/components/ui/badge';
 import { User, Calendar, Phone } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import WithdrawalStatusBadge from './WithdrawalStatusBadge';
@@ -12,7 +11,7 @@ interface WithdrawalCardProps {
     id: string;
     amount: number;
     phone_number?: string;
-    status: string;
+    status: 'pending' | 'approved' | 'rejected' | 'completed';
     created_at: string;
     processed_at?: string;
     admin_notes?: string;
@@ -21,11 +20,19 @@ interface WithdrawalCardProps {
       email: string;
     };
   };
-  onApprove: (id: string) => void;
-  onReject: (id: string, reason: string) => void;
+  notes: string;
+  onNotesChange: (value: string) => void;
+  onProcessWithdrawal: (action: 'approve' | 'reject') => void;
+  processing: boolean;
 }
 
-const WithdrawalCard = ({ withdrawal, onApprove, onReject }: WithdrawalCardProps) => {
+const WithdrawalCard = ({ 
+  withdrawal, 
+  notes, 
+  onNotesChange, 
+  onProcessWithdrawal, 
+  processing 
+}: WithdrawalCardProps) => {
   return (
     <Card className="hover:shadow-md transition-shadow">
       <CardContent className="p-6">
@@ -87,8 +94,11 @@ const WithdrawalCard = ({ withdrawal, onApprove, onReject }: WithdrawalCardProps
         {withdrawal.status === 'pending' && (
           <WithdrawalActions
             withdrawalId={withdrawal.id}
-            onApprove={onApprove}
-            onReject={onReject}
+            notes={notes}
+            onNotesChange={onNotesChange}
+            onApprove={() => onProcessWithdrawal('approve')}
+            onReject={() => onProcessWithdrawal('reject')}
+            processing={processing}
           />
         )}
       </CardContent>

@@ -49,7 +49,19 @@ const WithdrawalsManagement = () => {
           withdrawals.map((withdrawal) => (
             <WithdrawalCard
               key={withdrawal.id}
-              withdrawal={withdrawal}
+              withdrawal={{
+                id: withdrawal.id,
+                amount: withdrawal.amount,
+                phone_number: withdrawal.phone,
+                status: withdrawal.status as 'pending' | 'approved' | 'rejected' | 'completed',
+                created_at: withdrawal.requested_at,
+                processed_at: withdrawal.processed_at || undefined,
+                admin_notes: withdrawal.notes || undefined,
+                profiles: {
+                  full_name: withdrawal.full_name || undefined,
+                  email: withdrawal.full_name || 'No Email'
+                }
+              }}
               notes={notes[withdrawal.id] || ''}
               onNotesChange={(value) => setNotes(prev => ({ ...prev, [withdrawal.id]: value }))}
               onProcessWithdrawal={(action) => handleProcessWithdrawal(withdrawal.id, action)}

@@ -12,10 +12,10 @@ import BalanceActionDialog from '@/components/admin/BalanceActionDialog';
 interface UserProfile {
   id: string;
   full_name: string;
+  phone: string;
   wallet_balance: number;
   role: string;
   created_at: string;
-  phone: string;
 }
 
 const UsersManagement = () => {
@@ -154,7 +154,12 @@ const UsersManagement = () => {
   }
 
   const totalUsers = users.length;
-  const totalBalance = users.reduce((sum, user) => sum + user.wallet_balance, 0);
+  const activeUsers = users.filter(user => user.wallet_balance > 0).length;
+  const newUsersThisMonth = users.filter(user => {
+    const userCreated = new Date(user.created_at);
+    const now = new Date();
+    return userCreated.getMonth() === now.getMonth() && userCreated.getFullYear() === now.getFullYear();
+  }).length;
   const adminUsers = users.filter(user => user.role === 'admin').length;
 
   return (
@@ -165,9 +170,12 @@ const UsersManagement = () => {
       </div>
 
       <UserStatsCards 
-        totalUsers={totalUsers}
-        totalBalance={totalBalance}
-        adminUsers={adminUsers}
+        stats={{
+          totalUsers,
+          activeUsers,
+          newUsersThisMonth,
+          adminUsers
+        }}
       />
 
       <Card>
@@ -180,7 +188,15 @@ const UsersManagement = () => {
             {users.map((user) => (
               <UserCard
                 key={user.id}
-                user={user}
+                user={{
+                  id: user.id,
+                  email: user.full_name || 'No Name',
+                  full_name: user.full_name,
+                  phone_number: user.phone,
+                  wallet_balance: user.wallet_balance,
+                  created_at: user.created_at,
+                  is_admin: user.role === 'admin'
+                }}
                 onAddMoney={handleAddMoney}
                 onWithdrawMoney={handleWithdrawMoney}
               />
@@ -192,7 +208,15 @@ const UsersManagement = () => {
       <BalanceActionDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
-        selectedUser={selectedUser}
+        user={selectedUser ? {
+          id: selectedUser.id,
+          email: selectedUser.full_name || 'No Name',
+          full_name: selectedUser.full_name,
+          phone_number: selectedUser.phone,
+          wallet_balance: selectedUser.wallet_balance,
+          created_at: selectedUser.created_at,
+          is_admin: selectedUser.role === 'admin'
+        } : null}
         actionType={actionType}
         onConfirm={handleBalanceAction}
       />

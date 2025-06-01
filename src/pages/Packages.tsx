@@ -13,12 +13,11 @@ import { Package, TrendingUp, Calendar, DollarSign, Target, Clock } from 'lucide
 interface InvestmentPackage {
   id: string;
   name: string;
-  description: string;
-  min_amount: number;
-  max_amount: number;
-  daily_return_rate: number;
+  type: string;
+  price: number;
+  daily_earning: number;
   duration_days: number;
-  risk_level: string;
+  features: any[];
   is_active: boolean;
 }
 
@@ -37,10 +36,10 @@ const Packages = () => {
   const fetchPackages = async () => {
     try {
       const { data, error } = await supabase
-        .from('investment_packages')
+        .from('packages')
         .select('*')
         .eq('is_active', true)
-        .order('min_amount');
+        .order('price');
 
       if (error) throw error;
       setPackages(data || []);
@@ -66,10 +65,10 @@ const Packages = () => {
       return;
     }
 
-    if (balance < packageData.min_amount) {
+    if (balance < packageData.price) {
       toast({
         title: "Insufficient Balance",
-        description: `You need at least ${formatCurrency(packageData.min_amount)} to invest in this package`,
+        description: `You need at least ${formatCurrency(packageData.price)} to invest in this package`,
         variant: "destructive",
       });
       return;
@@ -78,13 +77,12 @@ const Packages = () => {
     setInvesting(packageData.id);
 
     try {
-      // Use minimum amount for investment
-      const investmentAmount = packageData.min_amount;
-      const dailyEarning = (investmentAmount * packageData.daily_return_rate) / 100;
+      const investmentAmount = packageData.price;
+      const dailyEarning = packageData.daily_earning;
 
       // Create investment record
       const { error: investmentError } = await supabase
-        .from('user_investments')
+        .from('investments')
         .insert({
           user_id: user.id,
           package_id: packageData.id,
@@ -143,15 +141,6 @@ const Packages = () => {
     }
   };
 
-  const getRiskColor = (riskLevel: string) => {
-    switch (riskLevel.toLowerCase()) {
-      case 'low': return 'bg-green-100 text-green-800';
-      case 'medium': return 'bg-yellow-100 text-yellow-800';
-      case 'high': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
   if (loading) {
     return (
       <div className="space-y-6">
@@ -193,20 +182,19 @@ const Packages = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {packages.map((pkg) => {
-            const dailyReturn = (pkg.min_amount * pkg.daily_return_rate) / 100;
+            const dailyReturn = pkg.daily_earning;
             const totalReturn = dailyReturn * pkg.duration_days;
-            const canInvest = balance >= pkg.min_amount;
+            const canInvest = balance >= pkg.price;
 
             return (
               <Card key={pkg.id} className={`relative overflow-hidden ${!canInvest ? 'opacity-60' : 'hover:shadow-lg'} transition-all`}>
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-xl">{pkg.name}</CardTitle>
-                    <Badge className={getRiskColor(pkg.risk_level)}>
-                      {pkg.risk_level} Risk
+                    <Badge className="bg-blue-100 text-blue-800">
+                      {pkg.type}
                     </Badge>
                   </div>
-                  <p className="text-gray-600 text-sm">{pkg.description}</p>
                 </CardHeader>
                 
                 <CardContent className="space-y-4">
@@ -214,10 +202,10 @@ const Packages = () => {
                     <div className="bg-blue-50 p-3 rounded-lg">
                       <div className="flex items-center space-x-2">
                         <DollarSign className="h-4 w-4 text-blue-600" />
-                        <span className="text-xs text-blue-600">Min Investment</span>
+                        <span className="text-xs text-blue-600">Investment</span>
                       </div>
                       <div className="font-semibold text-blue-700">
-                        {formatCurrency(pkg.min_amount)}
+                        {formatCurrency(pkg.price)}
                       </div>
                     </div>
                     
@@ -227,22 +215,12 @@ const Packages = () => {
                         <span className="text-xs text-green-600">Daily Return</span>
                       </div>
                       <div className="font-semibold text-green-700">
-                        {pkg.daily_return_rate}%
+                        {formatCurrency(dailyReturn)}
                       </div>
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <div className="flex items-center justify-between text-sm">
-                      <div className="flex items-center space-x-2">
-                        <Target className="h-4 w-4 text-purple-600" />
-                        <span className="text-gray-600">Daily Earning:</span>
-                      </div>
-                      <span className="font-semibold text-purple-600">
-                        {formatCurrency(dailyReturn)}
-                      </span>
-                    </div>
-                    
                     <div className="flex items-center justify-between text-sm">
                       <div className="flex items-center space-x-2">
                         <Clock className="h-4 w-4 text-orange-600" />
@@ -268,10 +246,10 @@ const Packages = () => {
                     <div className="text-center">
                       <div className="text-xs text-gray-600 mb-1">Expected Total</div>
                       <div className="text-lg font-bold text-green-600">
-                        {formatCurrency(pkg.min_amount + totalReturn)}
+                        {formatCurrency(pkg.price + totalReturn)}
                       </div>
                       <div className="text-xs text-gray-500">
-                        ({((totalReturn / pkg.min_amount) * 100).toFixed(1)}% profit)
+                        ({((totalReturn / pkg.price) * 100).toFixed(1)}% profit)
                       </div>
                     </div>
                   </div>
@@ -287,7 +265,7 @@ const Packages = () => {
                     ) : !canInvest ? (
                       'Insufficient Balance'
                     ) : (
-                      `Invest ${formatCurrency(pkg.min_amount)}`
+                      `Invest ${formatCurrency(pkg.price)}`
                     )}
                   </Button>
                 </CardContent>

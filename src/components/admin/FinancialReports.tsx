@@ -48,13 +48,13 @@ const FinancialReports = () => {
         .eq('type', 'withdrawal')
         .eq('status', 'completed');
 
-      // Fetch investments
+      // Fetch investments from the investments table
       const { data: investments } = await supabase
-        .from('user_investments')
+        .from('investments')
         .select('amount');
 
       const totalDeposits = deposits?.reduce((sum, t) => sum + t.amount, 0) || 0;
-      const totalWithdrawals = withdrawals?.reduce((sum, t) => sum + t.amount, 0) || 0;
+      const totalWithdrawals = Math.abs(withdrawals?.reduce((sum, t) => sum + t.amount, 0) || 0);
       const totalInvestments = investments?.reduce((sum, i) => sum + i.amount, 0) || 0;
 
       setFinancialData({
