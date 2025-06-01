@@ -16,10 +16,10 @@ const UsersManagement = () => {
     actionType,
     dialogOpen,
     setDialogOpen,
-    handleBalanceAction,
     handleAddMoney,
     handleWithdrawMoney,
-    calculateStats
+    calculateStats,
+    fetchUsers
   } = useUsersManagement(isAdmin);
 
   if (!isAdmin) {
@@ -32,12 +32,14 @@ const UsersManagement = () => {
 
   const stats = calculateStats();
 
-  // Convert selected user for dialog
+  // Convert selected user for dialog and map action type to the dialog's expected prop
   const selectedUserForDialog = selectedUser ? {
     id: selectedUser.id,
     email: selectedUser.full_name || 'No Name',
     wallet_balance: selectedUser.wallet_balance
   } : null;
+
+  const dialogAction = actionType === 'add' ? 'add' : 'deduct';
 
   return (
     <div className="space-y-6">
@@ -54,13 +56,15 @@ const UsersManagement = () => {
         onDeductFunds={handleWithdrawMoney}
       />
 
-      <BalanceActionDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        user={selectedUserForDialog}
-        actionType={actionType}
-        onConfirm={handleBalanceAction}
-      />
+      {selectedUserForDialog && (
+        <BalanceActionDialog
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+          user={selectedUserForDialog}
+          action={dialogAction}
+          onSuccess={fetchUsers}
+        />
+      )}
     </div>
   );
 };
