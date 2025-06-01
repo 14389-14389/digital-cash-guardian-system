@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -197,8 +196,8 @@ const UsersManagement = () => {
                   created_at: user.created_at,
                   is_admin: user.role === 'admin'
                 }}
-                onAddMoney={handleAddMoney}
-                onWithdrawMoney={handleWithdrawMoney}
+                onAddFunds={handleAddMoney}
+                onDeductFunds={handleWithdrawMoney}
               />
             ))}
           </div>

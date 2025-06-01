@@ -30,6 +30,14 @@ const AdminDashboard = () => {
     return <AdminErrorState error={error} onRetry={refetch} />;
   }
 
+  // Create compatible stats object for AdminStatsCards
+  const adminStatsForCards = {
+    totalUsers: stats.totalUsers,
+    totalBalance: stats.totalBalance || 0,
+    totalInvestments: stats.totalInvestments || 0,
+    totalWithdrawals: stats.totalWithdrawals || 0
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -39,7 +47,7 @@ const AdminDashboard = () => {
         </p>
       </div>
 
-      <AdminStatsCards stats={stats} />
+      <AdminStatsCards stats={adminStatsForCards} />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <AdminQuickActions />

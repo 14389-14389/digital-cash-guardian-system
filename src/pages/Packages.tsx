@@ -13,12 +13,14 @@ import { Package, TrendingUp, Calendar, DollarSign, Target, Clock } from 'lucide
 interface InvestmentPackage {
   id: string;
   name: string;
-  type: string;
+  type: 'starter' | 'growth' | 'premium' | 'elite';
   price: number;
   daily_earning: number;
   duration_days: number;
-  features: any[];
+  features: any;
   is_active: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 const Packages = () => {
