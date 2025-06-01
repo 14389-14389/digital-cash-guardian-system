@@ -33,9 +33,9 @@ const AdminDashboard = () => {
   // Create compatible stats object for AdminStatsCards
   const adminStatsForCards = {
     totalUsers: stats.totalUsers,
-    totalBalance: stats.totalBalance || 0,
-    totalInvestments: stats.totalInvestments || 0,
-    totalWithdrawals: stats.totalWithdrawals || 0
+    totalBalance: stats.totalBalance,
+    totalInvestments: stats.totalInvestments,
+    totalWithdrawals: stats.totalWithdrawals
   };
 
   return (
